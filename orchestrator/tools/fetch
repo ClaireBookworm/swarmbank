@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""fetch URL: download a public file into the shared read-only data store and print its path."""
+import json, os, sys, urllib.error, urllib.parse, urllib.request
+
+if len(sys.argv) != 2 or sys.argv[1].startswith("-"):
+    sys.exit("usage: fetch URL   (prints a read-only local path to the file)")
+port = os.environ.get("QUO_DATA_PORT", "8319")
+req = urllib.request.Request(f"http://127.0.0.1:{port}/fetch?url=" + urllib.parse.quote(sys.argv[1], safe=""),
+                             headers={"X-Run-Id": os.environ.get("QUO_RUN_ID", "")})
+try:
+    with urllib.request.urlopen(req, timeout=24 * 3600) as resp:
+        print(json.load(resp)["path"])
+except urllib.error.HTTPError as exc:
+    sys.exit("fetch: " + json.load(exc).get("error", f"HTTP {exc.code}"))
+except urllib.error.URLError as exc:
+    sys.exit(f"fetch: data service not reachable ({exc.reason})")

@@ -1,0 +1,21 @@
+[Unit]
+Description=quo swarm orchestrator and usage console (official CLIs only; no proxy)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=%h/.local/share/quo-swarm/app PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m quo_swarm serve
+Restart=on-failure
+RestartSec=10
+UMask=0077
+# Agent runs live in quo-agents.slice (separate scopes); stopping this service
+# interrupts them and their sessions resume later on the same account.
+KillMode=mixed
+TimeoutStopSec=60
+CPUWeight=50
+MemoryMax=1G
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,48 @@
+{
+  "accounts": [
+    {
+      "id": "claude-1",
+      "provider": "claude",
+      "email": "you@example.com",
+      "enabled": true,
+      "cap_percent": 80
+    }
+  ],
+  "models": {
+    "claude": {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh"
+    },
+    "codex": {
+      "model": null,
+      "effort": null
+    }
+  },
+  "memory_reserve_percent": 15,
+  "disk_reserve_gib": 50,
+  "disk_critical_gib": 25,
+  "data_service": {
+    "host": "127.0.0.1",
+    "port": 8319,
+    "max_file_gib": 60
+  },
+  "pools": {
+    "science": {
+      "enabled": false,
+      "concurrency": 7,
+      "per_account_concurrency": 7,
+      "new_run_interval_seconds": 120,
+      "account_start_interval_seconds": 60,
+      "provider_priority": [
+        "claude"
+      ],
+      "sci": {
+        "server": "https://sci.azaho.org/",
+        "keys": {
+          "claude": "~/.sci/key.pem"
+        }
+      },
+      "prompt": "<contents of config/prompt.txt, edited for this machine>"
+    }
+  }
+}
