@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Swarm console</title>
+<style>
+:root{--bg:#fbfaff;--card:#fff;--border:#e6e1f3;--text:#242424;--muted:#6b6880;--quo:#4a2c91;--soft:#f1ecfb;--ok:#2d7047;--warn:#9a6a12;--bad:#a3302a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;border-top:6px solid var(--quo)}
+main{max-width:1320px;margin:auto;padding:26px 36px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.brand{font-size:22px;font-weight:650;color:var(--quo);letter-spacing:-.6px}
+.title{border-left:1px solid #d4d0e4;padding-left:14px;font-weight:550}
+.pill{padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid;white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:#b9d8c4;background:#eef7f1}.pill.bad{color:var(--bad);border-color:#ecc2bf;background:#fbefee}
+.pill.warn{color:var(--warn);border-color:#ecd9b0;background:#fdf6e7}.pill.quo{color:var(--quo);border-color:var(--quo);background:var(--soft)}
+.spacer{flex:1}.muted{color:var(--muted)}.small{font-size:12px}
+h2{font-size:15px;margin:26px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
+.card h3{margin:0;font-size:15px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:2px 10px;font-size:12px;margin-top:10px}
+.kv div:nth-child(odd){color:var(--muted)}
+.bar{margin-top:10px}.bar .lbl{display:flex;justify-content:space-between;font-size:12px}
+.track{position:relative;height:8px;border-radius:4px;background:#eeeaf7;margin-top:3px;overflow:hidden}
+.fill{height:100%;background:var(--quo)}.fill.hi{background:var(--bad)}.fill.mid{background:var(--warn)}
+.cap{position:absolute;top:-2px;bottom:-2px;width:2px;background:#222}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:12.5px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}th{color:var(--muted);font-weight:550;background:#faf8ff}
+td.num{font-variant-numeric:tabular-nums;text-align:right}
+code{font:12px ui-monospace,SFMono-Regular,monospace}
+.problem{color:var(--bad);margin:10px 0}
+</style>
+<script src="console.js" defer></script>
+</head>
+<body>
+<main>
+  <header>
+    <span class="brand">swarm</span><span class="pill quo">PRIVATE</span>
+    <span class="title">Swarm console</span>
+    <span class="spacer"></span>
+    <span id="proxy" class="pill">checking proxy…</span>
+    <span id="launch" class="pill">…</span>
+  </header>
+  <p id="problem" class="problem" hidden></p>
+  <section>
+    <div class="grid" id="pool"></div>
+  </section>
+  <h2>Accounts</h2>
+  <div class="grid" id="accounts"></div>
+  <h2>Runs</h2>
+  <table><thead><tr><th>Run</th><th>Account</th><th>State</th><th>Model</th><th class="num">Turns</th>
+    <th class="num">Input</th><th class="num">Cached</th><th class="num">Output</th><th>Updated</th><th>Note</th></tr></thead>
+    <tbody id="runs"></tbody></table>
+  <h2>Events</h2>
+  <table><thead><tr><th>Time</th><th>Level</th><th>Account</th><th>Message</th></tr></thead><tbody id="events"></tbody></table>
+  <p class="muted small">Read-only. Data comes only from the official Claude Code and Codex CLIs' own output on this laptop. No proxy is used. Refreshes every 10 s.</p>
+</main>
+</body>
+</html>

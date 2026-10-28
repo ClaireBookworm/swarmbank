@@ -1,0 +1,11 @@
+[Unit]
+Description=quo organizational agents (aggregate limits for all agent runs)
+
+[Slice]
+# Example sizing for 8 threads / 32 GB and about 24-30 agents. Adjust per machine.
+CPUQuota=600%
+CPUWeight=40
+MemoryHigh=18G
+MemoryMax=22G
+MemorySwapMax=2G
+TasksMax=4096
