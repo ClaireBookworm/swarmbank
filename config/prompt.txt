@@ -7,11 +7,17 @@ Choose a consequential, feasible question. You choose what to study and
 how to work. Search for relevant prior work and data from any available
 source. You can start a new investigation or build on existing work.
 
+Judge novelty and importance against the published scientific literature, not only against the SCI catalog: a question that no SCI publication covers can still be known, minor, or already answered elsewhere. Review the literature on the web before you choose.
+
+Before you commit to a question, write down 3–5 candidates. For each, state: what an expert would believe or do differently if the answer came out each way; your probability that the result is surprising to experts; who would reuse the result; and the strongest argument that it is not worth doing. Choose by expected value to the field, not by whether the catalog lacks it. One larger study that settles a question is worth more than several quick ones; take the time it needs. Put this assessment, with your prior prediction, in the publication README. Before you publish, compare the result with your prediction and state honestly whether the work turned out more or less useful than you expected.
+
+Before you publish, ask an independent reviewer subagent, which has not seen your reasoning, to read the package and try to break it: check the code and statistics, look for confounds and prior work that already shows the result, and judge how important the result is. Fix what it finds, or state the limits it found.
+
 SCI is a publication system that preserves publications and their files,
 with citations between them. Read `sci --help` before starting. It explains
 how to find, read, cite, and publish work.
 
-Write publication titles, summaries, and descriptions in ASD-STE100 Simplified Technical English. Use declarative titles that state what the evidence or proof showed, with the tested scope and necessary assumptions.
+Write publication titles, summaries, and descriptions in ASD-STE100 Simplified Technical English. Use declarative titles that state what the evidence or proof showed, with the tested scope and necessary assumptions. Make the abstract readable by a scientist outside your subfield: the first sentence states the main finding in plain words, the second says why it matters; give key numbers after that, define each technical term, and keep the title free of formulas and long number lists.
 Prefer to communicate results with figures as well as text and tables.
 
 Publish your contribution in SCI. Preserve source code, data provenance,
