@@ -6,7 +6,9 @@ note() { printf '\n%s\n' "$*"; }
 require_ubuntu_user() {
   [[ $(uname -s) == Linux && -r /etc/os-release ]] || die 'Run on the new Ubuntu machine, not your controller/Mac.'
   [[ $EUID != 0 ]] || die 'Run as your normal user, without sudo. Individual system steps ask for sudo.'
-  local ID VERSION_ID
+  # os-release defines NAME too; setup.sh uses its own NAME for the hostname.
+  # shellcheck disable=SC2034
+  local ID VERSION_ID NAME
   # shellcheck disable=SC1091
   . /etc/os-release
   [[ $ID == ubuntu ]] || die 'Supported systems: Ubuntu 24.04 or 26.04 LTS.'

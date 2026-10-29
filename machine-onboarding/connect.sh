@@ -25,6 +25,7 @@ if [[ $ACTION == all || $ACTION == tailscale ]]; then
   sudo tailscale up
   IP=$(tailscale ip -4)
   [[ -n $IP ]] || die 'Tailscale has not assigned an IPv4 address.'
+  tailscale status --json | python3 "$ROOT/lib/tailscale_health.py"
   printf '\nController connection: ssh %s@%s\n' "$(id -un)" "$IP"
   echo 'Compare this host-key fingerprint on your first controller connection:'
   ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub

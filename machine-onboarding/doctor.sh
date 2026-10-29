@@ -17,8 +17,12 @@ check() {
   if ! "$@"; then echo 'FAIL: needs attention.'; FAILED=1; fi
 }
 check 'SSH' systemctl is-active ssh
+check 'SSH enabled at boot' systemctl is-enabled ssh
 check 'Tailscale daemon' systemctl is-active tailscaled
+check 'Tailscale enabled at boot' systemctl is-enabled tailscaled
 check 'Tailscale address (join the tailnet first)' tailscale ip -4
+check 'Tailscale control connection and health' bash -o pipefail -c \
+  'tailscale status --json | python3 "$1"' _ "$ROOT/lib/tailscale_health.py"
 for tool in git gh node npm python3 uv codex claude; do check "$tool installed" "$tool" --version; done
 if [[ -f "$HOME/.local/state/swarmbank-onboarding/github-enabled" ]]; then
   check 'Git name' git config --global --get user.name

@@ -5,6 +5,12 @@ ARM64). Use your normal administrator account, Wi-Fi/Ethernet, and AC power.
 Start in an Ubuntu terminal, or use `ssh -t` for remote setup. Live USB sessions,
 containers, and other Linux distributions are unsupported.
 
+For an old laptop that still needs Ubuntu installed or will not boot, start with
+the [old ThinkPad runbook](OLD-THINKPAD-RUNBOOK.md). It records the tested
+Legacy/MBR repair, persistent Wi-Fi/SSH rescue USB, offline transfer fallback,
+and verification sequence from one X220 and two T420s. The scripts here do not
+install Ubuntu or change disk partition tables.
+
 ## 1. Download and install
 
 This repository is private. On your Mac/controller, sign in to GitHub, select
@@ -118,6 +124,14 @@ Then use `ssh swarm-01`. Repeat with distinct aliases for the other laptops.
 For T3, add that SSH alias under **Settings → Connections → Add environment → SSH**.
 Match controller/host T3 versions if connecting fails.
 
+An SSH environment saved on the Mac is not automatically available on a phone.
+For optional phone access, run `t3 connect link --headless` on the intended host,
+approve it with the phone's T3 account, restart its T3 service when jobs are idle,
+and check `t3 connect status`. Use the existing host's T3 data directory so the
+phone sees the same threads. See the runbook and
+[T3 remote access](https://github.com/pingdotgg/t3code/blob/main/docs/user/remote-access.md)
+for account limits and current mobile steps.
+
 ## 4. Verify and reboot
 
 ```bash
@@ -126,9 +140,13 @@ bash doctor.sh
 
 GitHub checks run only if GitHub setup was requested; skipping it is fine.
 Rerunning setup without `--github` does not undo a previous GitHub opt-in.
-Fix any failed checks, then reboot when ready. Test SSH again with the lid closed
-on AC, and run the checker again over SSH. Disk encryption may need a physical
-boot passphrase before SSH becomes available. Keep Wi-Fi auto-connect enabled
+The checker requires Tailscale to report this host online without health warnings;
+an assigned IP and working peer SSH connection alone can hide a lost coordination
+connection. It also checks SSH and Tailscale are enabled at boot.
+
+Fix any failed checks, then reboot with the lid open when ready. Reconnect before
+closing the lid on AC, and run the checker again over SSH. Disk encryption may
+need a physical boot passphrase before SSH becomes available. Keep Wi-Fi auto-connect enabled
 and check Tailscale device expiry for unattended hosts.
 
 SSH retains Ubuntu's authentication defaults. When UFW is active, setup allows
@@ -168,4 +186,7 @@ shellcheck -x -P machine-onboarding machine-onboarding/*.sh machine-onboarding/l
 python3 -m unittest discover -s machine-onboarding/tests -v
 ```
 
-Full installation, reboot/lid behavior, and ARM64 still need hardware testing.
+Installation/onboarding, reboot, and AC lid behavior were exercised on an X220
+and two T420s running Ubuntu 26.04 LTS; see the runbook for layouts and limits.
+The strengthened Tailscale check has regression coverage. ARM64 and a general
+USB-building or unattended OS-installation workflow remain untested.
