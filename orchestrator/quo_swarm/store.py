@@ -69,11 +69,16 @@ def set_account_state(conn, account: str, state: str, reason: str | None = None,
 
 
 def record_usage(conn, account: str, window: str, used_percent, resets_at, status=None, detail=None) -> None:
+    # A known percent replaces the old one. A new window (different reset time) without a percent clears it,
+    # so a reading from an earlier window never blocks the next one.
     now = time.time()
     conn.execute(
         """insert into usage(account, window, used_percent, resets_at, status, detail, observed_at)
            values (?,?,?,?,?,?,?)
-           on conflict(account, window) do update set used_percent=coalesce(excluded.used_percent, usage.used_percent),
+           on conflict(account, window) do update set used_percent=case
+               when excluded.used_percent is not null then excluded.used_percent
+               when excluded.resets_at is not null and excluded.resets_at != usage.resets_at then null
+               else usage.used_percent end,
              resets_at=coalesce(excluded.resets_at, usage.resets_at), status=excluded.status,
              detail=excluded.detail, observed_at=excluded.observed_at""",
         (account, window, used_percent, resets_at, status, json.dumps(detail) if detail else None, now))

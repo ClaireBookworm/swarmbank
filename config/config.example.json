@@ -29,8 +29,8 @@
   "pools": {
     "science": {
       "enabled": false,
-      "concurrency": 7,
-      "per_account_concurrency": 7,
+      "concurrency": 6,
+      "per_account_concurrency": 6,
       "new_run_interval_seconds": 120,
       "account_start_interval_seconds": 60,
       "provider_priority": [
