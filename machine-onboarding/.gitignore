@@ -1,0 +1,7 @@
+# Local onboarding inputs must not be published with this public repository.
+*.pub
+*.local.*
+.env*
+.ssh/
+*.log
+*.zip
