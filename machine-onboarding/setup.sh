@@ -25,7 +25,9 @@ while (($#)); do
   case "$1" in
     --help|-h) usage; exit 0;;
     --name|--git-name|--git-email|--authorized-key)
-      (($# >= 2)) && [[ -n $2 && $2 != --* ]] || die "Missing value for $1"
+      if (($# < 2)) || [[ -z $2 || $2 == --* ]]; then
+        die "Missing value for $1"
+      fi
       case "$1" in
         --name) NAME=$2;; --git-name) GIT_NAME=$2;; --git-email) GIT_EMAIL=$2;; --authorized-key) AUTHORIZED_KEY=$2;;
       esac
