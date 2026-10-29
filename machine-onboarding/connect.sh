@@ -4,9 +4,9 @@ set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib/common.sh
 . "$ROOT/lib/common.sh"
-ACTION=${1:-all}
+ACTION=${1:-tailscale}
 case "$ACTION" in
-  --help|-h) echo 'Usage: bash connect.sh [all|tailscale|github]'; exit 0;;
+  --help|-h) echo 'Usage: bash connect.sh [tailscale|github|all] (default: tailscale)'; exit 0;;
   all|tailscale|github) ;;
   *) die 'Choose all, tailscale, or github.';;
 esac
@@ -34,7 +34,8 @@ fi
 if [[ $ACTION == all || $ACTION == github ]]; then
   command -v gh >/dev/null || die 'Run setup.sh first.'
   KEY="$HOME/.ssh/id_ed25519_swarmbank_github.pub"
-  [[ -f $KEY ]] || die 'Run setup.sh to generate the GitHub key for this machine.'
+  [[ -f $KEY ]] || die 'Run setup.sh --github to configure GitHub for this machine.'
+  touch "$STATE/github-enabled"
   note 'GitHub SSH key (public):'
   cat "$KEY"
   printf '\nOn your controller, open https://github.com/settings/ssh/new\nTitle: %s\nType: Authentication Key\nPaste the public key above. If already added, keep the existing entry.\n' "$(hostname)-github"

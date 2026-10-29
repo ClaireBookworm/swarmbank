@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install tools and configure the host. Does not log in to any external account.
+# Install tools and configure the host. GitHub login is opt-in.
 set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib/common.sh
@@ -10,17 +10,18 @@ usage() {
   cat <<'HELP'
 Usage: bash setup.sh [options]
   --name NAME             Unique hostname, e.g. swarm-01 (prompted if omitted)
-  --git-name NAME          Git author name (prompted if omitted)
+  --github, --gh           Configure Git identity/key and start GitHub login
+  --git-name NAME          Git author name (prompted only with --github)
   --git-email EMAIL        Git author email, including a GitHub noreply address
   --authorized-key FILE    Controller's public .pub key for incoming SSH (optional)
-  --unattended-key         Create the host's GitHub key without a passphrase
+  --key-passphrase         Prompt for a new GitHub key passphrase (default: none)
   --keep-sleep             Preserve sleep/lid settings
   --no-t3                  Skip T3 installation and its background service
   --help                  Show this help without changing anything
 No Codex/Claude sign-in, model calls, swarm launch, or automatic reboot.
 HELP
 }
-NAME='' GIT_NAME='' GIT_EMAIL='' AUTHORIZED_KEY='' KEEP_SLEEP=0 NO_T3=0 UNATTENDED_KEY=0
+NAME='' GIT_NAME='' GIT_EMAIL='' AUTHORIZED_KEY='' KEEP_SLEEP=0 NO_T3=0 GITHUB=0 KEY_PASSPHRASE=0
 while (($#)); do
   case "$1" in
     --help|-h) usage; exit 0;;
@@ -34,17 +35,25 @@ while (($#)); do
       shift 2;;
     --keep-sleep) KEEP_SLEEP=1; shift;;
     --no-t3) NO_T3=1; shift;;
-    --unattended-key) UNATTENDED_KEY=1; shift;;
+    --github|--gh) GITHUB=1; shift;;
+    --key-passphrase) KEY_PASSPHRASE=1; shift;;
     *) die "Unknown option: $1";;
   esac
 done
+((!KEY_PASSPHRASE || GITHUB)) || die '--key-passphrase requires --github.'
 require_ubuntu_user
 [[ -t 0 ]] || die 'Run interactively from a terminal (or ssh -t); do not pipe this script into bash.'
 if [[ -z $NAME ]]; then read -r -p 'Unique machine name (e.g. swarm-01): ' NAME; fi
 valid_name "$NAME" || die 'Name must be 1–63 lowercase letters/digits/hyphens, with a letter or digit at each end.'
-if [[ -z $GIT_NAME ]]; then read -r -p 'Git author name: ' GIT_NAME; fi
-if [[ -z $GIT_EMAIL ]]; then read -r -p 'Git author email (or GitHub noreply email): ' GIT_EMAIL; fi
-[[ -n $GIT_NAME && $GIT_NAME != *$'\n'* && $GIT_EMAIL == ?*@?* && $GIT_EMAIL != *[[:space:]]* ]] || die 'A name and valid-looking email are required.'
+if ((GITHUB)); then
+  if [[ -z $GIT_NAME ]]; then read -r -p 'Git author name: ' GIT_NAME; fi
+  if [[ -z $GIT_EMAIL ]]; then read -r -p 'Git author email (or GitHub noreply email): ' GIT_EMAIL; fi
+  [[ -n $GIT_NAME && -n $GIT_EMAIL ]] || die 'GitHub setup requires a Git name and email.'
+fi
+[[ $GIT_NAME != *$'\n'* ]] || die 'Git name must be a single line.'
+if [[ -n $GIT_EMAIL ]]; then
+  [[ $GIT_EMAIL == ?*@?* && $GIT_EMAIL != *[[:space:]]* ]] || die 'A valid-looking email is required.'
+fi
 if [[ -n $AUTHORIZED_KEY ]]; then
   [[ -f $AUTHORIZED_KEY ]] || die 'Controller public-key file does not exist.'
   # Reject obvious private keys before invoking any system changes.
@@ -80,8 +89,8 @@ p.write_text('\n'.join(lines) + '\n')
 PY
 python3 "$ROOT/lib/configure.py" shell-path
 load_tools
-git config --global user.name "$GIT_NAME"
-git config --global user.email "$GIT_EMAIL"
+if [[ -n $GIT_NAME ]]; then git config --global user.name "$GIT_NAME"; fi
+if [[ -n $GIT_EMAIL ]]; then git config --global user.email "$GIT_EMAIL"; fi
 if [[ -n $AUTHORIZED_KEY ]]; then python3 "$ROOT/lib/configure.py" authorize-key "$AUTHORIZED_KEY"; fi
 sudo /usr/sbin/sshd -t
 sudo systemctl enable --now ssh
@@ -130,21 +139,24 @@ if ! command -v claude >/dev/null; then
   bash "$STATE/claude-install.sh" stable
 fi
 
-KEY="$HOME/.ssh/id_ed25519_swarmbank_github"
-install -d -m 700 "$HOME/.ssh"
-if [[ ! -e $KEY && ! -e $KEY.pub ]]; then
-  note 'Creating a GitHub SSH key for this machine. Never copy it to another machine.'
-  if ((UNATTENDED_KEY)); then
-    ssh-keygen -q -t ed25519 -N '' -C "$NAME-github" -f "$KEY"
-  else
-    ssh-keygen -t ed25519 -C "$NAME-github" -f "$KEY"
+if ((GITHUB)); then
+  KEY="$HOME/.ssh/id_ed25519_swarmbank_github"
+  install -d -m 700 "$HOME/.ssh"
+  if [[ ! -e $KEY && ! -e $KEY.pub ]]; then
+    note 'Creating a GitHub SSH key for this machine. Never copy it to another machine.'
+    if ((KEY_PASSPHRASE)); then
+      ssh-keygen -t ed25519 -C "$NAME-github" -f "$KEY"
+    else
+      ssh-keygen -q -t ed25519 -N '' -C "$NAME-github" -f "$KEY"
+    fi
+  elif [[ ! -f $KEY || ! -f $KEY.pub ]]; then
+    die "Incomplete key pair at $KEY. Recover it manually; setup will not replace a key."
   fi
-elif [[ ! -f $KEY || ! -f $KEY.pub ]]; then
-  die "Incomplete key pair at $KEY. Recover it manually; setup will not replace a key."
+  chmod 600 "$KEY"
+  ssh-keygen -lf "$KEY.pub"
+  python3 "$ROOT/lib/configure.py" github-config
+  touch "$STATE/github-enabled"
 fi
-chmod 600 "$KEY"
-ssh-keygen -lf "$KEY.pub"
-python3 "$ROOT/lib/configure.py" github-config
 
 if ((!NO_T3)); then
   if ! command -v t3 >/dev/null; then
@@ -166,5 +178,6 @@ printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgr
 printf 'Unattended-Upgrade::Automatic-Reboot "false";\n' | sudo tee /etc/apt/apt.conf.d/99-swarmbank-no-reboot >/dev/null
 note 'Installed. Codex and Claude have not been signed in; no agents were started.'
 for tool in node npm uv codex claude; do "$tool" --version; done
+if ((GITHUB)); then bash "$ROOT/connect.sh" github; fi
 printf '\nNext: bash %q/connect.sh\nThen: bash %q/doctor.sh\n' "$ROOT" "$ROOT"
 echo 'Use a new terminal for the updated PATH. Reboot only when ready to test unattended startup.'

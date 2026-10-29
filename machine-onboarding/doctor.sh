@@ -20,17 +20,21 @@ check 'SSH' systemctl is-active ssh
 check 'Tailscale daemon' systemctl is-active tailscaled
 check 'Tailscale address (join the tailnet first)' tailscale ip -4
 for tool in git gh node npm python3 uv codex claude; do check "$tool installed" "$tool" --version; done
-check 'Git name' git config --global --get user.name
-check 'Git email' git config --global --get user.email
-check 'GitHub CLI login' gh auth status --hostname github.com
-check 'GitHub API access' gh api user --jq .login
-check 'GitHub protocol' bash -c '[[ $(gh config get git_protocol --host github.com) == ssh ]]'
-check 'GitHub SSH' bash -c '
-  status=0
-  result=$(ssh -T -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes git@github.com 2>&1) || status=$?
-  printf "%s\n" "$result"
-  [[ $status == 1 && $result == *"successfully authenticated"* ]]
-'
+if [[ -f "$HOME/.local/state/swarmbank-onboarding/github-enabled" ]]; then
+  check 'Git name' git config --global --get user.name
+  check 'Git email' git config --global --get user.email
+  check 'GitHub CLI login' gh auth status --hostname github.com
+  check 'GitHub API access' gh api user --jq .login
+  check 'GitHub protocol' bash -c '[[ $(gh config get git_protocol --host github.com) == ssh ]]'
+  check 'GitHub SSH' bash -c '
+    status=0
+    result=$(ssh -T -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes git@github.com 2>&1) || status=$?
+    printf "%s\n" "$result"
+    [[ $status == 1 && $result == *"successfully authenticated"* ]]
+  '
+else
+  echo 'GitHub setup skipped (optional: setup.sh --github).'
+fi
 if command -v t3 >/dev/null; then
   check 'T3 version' t3 --version
   check 'T3 running' systemctl --user is-active t3code.service

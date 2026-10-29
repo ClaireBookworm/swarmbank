@@ -14,11 +14,20 @@ sudo apt update
 sudo apt install -y git
 git clone https://github.com/ClaireBookworm/swarmbank.git
 cd swarmbank/machine-onboarding
-bash setup.sh --name swarm-01 --unattended-key
+bash setup.sh --name swarm-01
 ```
 
 Use `swarm-02` and `swarm-03` on the other laptops. You can also copy this entire
-folder by USB. Setup asks for your Git name/email and Ubuntu sudo password.
+folder by USB. Setup asks for your Ubuntu sudo password. GitHub setup is optional:
+
+```bash
+bash setup.sh --name swarm-01 --github   # --gh also works
+```
+
+This also asks for your Git name/email, creates a GitHub key, and starts the GitHub
+login prompts after installation. Without the flag, no Git identity is requested,
+no GitHub key/config is created, and no GitHub login is started. Git and `gh` are
+still installed. You can rerun setup with `--github` later.
 
 It installs SSH, Tailscale, Git/GitHub CLI, Node 24 when needed, Python/uv,
 build tools, tmux, T3, Codex CLI, and Claude Code. **Codex and Claude remain logged
@@ -30,9 +39,10 @@ for SSH sessions, and disables GNOME idle sleep/lid suspend on AC. The lid setti
 requires a reboot. Battery sleep settings stay unchanged. Existing CLI installs
 and GitHub keys are retained when you rerun setup after a failure.
 
-`--unattended-key` creates this laptop's GitHub SSH key without a passphrase so
-it works after reboot. Omit it if you prefer a passphrase and an unlocked
-`ssh-agent`. Each laptop gets its own key; never copy private keys between machines.
+With `--github`, new GitHub keys have **no passphrase by default** so they work
+after reboot. Add `--key-passphrase` to prompt for one instead; that requires an
+unlocked `ssh-agent`. Existing keys and their passphrases are preserved. Each
+laptop gets its own key; never copy private keys between machines.
 
 Other options:
 
@@ -41,24 +51,28 @@ Other options:
 - `--keep-sleep`: preserve current sleep/lid settings.
 - `--no-t3`: skip T3 and its service.
 
-## 2. Connect accounts
+## 2. Connect Tailscale
 
 ```bash
 bash connect.sh
 ```
 
-Follow its prompts:
+Approve the printed Tailscale URL using the same network/account as your
+controller. By default, `connect.sh` connects only Tailscale.
 
-1. Approve the Tailscale URL using the same network/account as your controller.
-2. Add the printed public key at [GitHub SSH keys](https://github.com/settings/ssh/new)
+### Optional GitHub login
+
+When you run setup with `--github`, it starts these prompts automatically:
+
+1. Add the printed public key at [GitHub SSH keys](https://github.com/settings/ssh/new)
    as an Authentication Key, named after this laptop.
-3. Enter the new GitHub CLI code at [GitHub device login](https://github.com/login/device)
+2. Enter the new GitHub CLI code at [GitHub device login](https://github.com/login/device)
    on your controller. Keep the laptop terminal open until it finishes. If asked
    to upload an SSH key, choose **Skip** because you just added it.
 
 SSH handles clone/pull/push; GitHub CLI authentication enables PRs and other API
-operations. Provider logins remain deferred. Resume either connection with
-`bash connect.sh tailscale` or `bash connect.sh github`.
+operations. Provider logins remain deferred. Retry an interrupted GitHub login
+with `bash connect.sh github`.
 
 `github_known_hosts` contains **GitHub's published server public key**, used to
 verify the server. It contains no user credentials. Your own keys are generated
@@ -106,6 +120,8 @@ Match controller/host T3 versions if connecting fails.
 bash doctor.sh
 ```
 
+GitHub checks run only if GitHub setup was requested; skipping it is fine.
+Rerunning setup without `--github` does not undo a previous GitHub opt-in.
 Fix any failed checks, then reboot when ready. Test SSH again with the lid closed
 on AC, and run the checker again over SSH. Disk encryption may need a physical
 boot passphrase before SSH becomes available. Keep Wi-Fi auto-connect enabled
