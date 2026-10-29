@@ -7,18 +7,22 @@ containers, and other Linux distributions are unsupported.
 
 ## 1. Download and install
 
-No GitHub login is needed to download this public repository:
+This repository is private. On your Mac/controller, sign in to GitHub, select
+the branch you want (for the unmerged PR, `codex/machine-onboarding`), and use
+**Code → Download ZIP**. Extract it and copy the entire `machine-onboarding`
+folder to a USB drive. Keep its `lib/` directory and other files together.
+
+On the new Ubuntu laptop, copy that folder from USB into **Downloads**, then
+open Terminal and run:
 
 ```bash
-sudo apt update
-sudo apt install -y git
-git clone https://github.com/ClaireBookworm/swarmbank.git
-cd swarmbank/machine-onboarding
+cd ~/Downloads/machine-onboarding
 bash setup.sh --name swarm-01
 ```
 
-Use `swarm-02` and `swarm-03` on the other laptops. You can also copy this entire
-folder by USB. Setup asks for your Ubuntu sudo password. GitHub setup is optional:
+The new laptop needs internet for package downloads, but no GitHub login to run
+the copied installer. Use `swarm-02` and `swarm-03` on the other laptops. Setup
+asks for your Ubuntu sudo password. GitHub setup is optional:
 
 ```bash
 bash setup.sh --name swarm-01 --github   # --gh also works
