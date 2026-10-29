@@ -49,9 +49,6 @@ if [[ -f "$HOME/.local/state/swarmbank-onboarding/power-configured" ]]; then
     check 'GNOME AC idle sleep' test "$(gsettings get org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type)" = "'nothing'"
   fi
 fi
-if [[ -f "$HOME/.local/state/swarmbank-onboarding/browser-pending" ]]; then
-  echo 'NOTE: optional T3 browser setup remains pending; see README.'
-fi
 if [[ -f /var/run/reboot-required ]]; then echo 'NOTE: Ubuntu requests a reboot; schedule it after jobs finish.'; fi
 echo 'Codex/Claude account login is deliberately not required by this check.'
 echo 'Also test SSH from your controller after reboot and with the lid closed on AC.'

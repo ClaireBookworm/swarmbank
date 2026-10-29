@@ -151,18 +151,6 @@ if ((!NO_T3)); then
     download https://t3.codes/install.sh "$STATE/t3-install.sh"
     sh "$STATE/t3-install.sh"
   fi
-  # Browser setup is optional; its absence/failure must not strand core setup.
-  if browser_setup_supported; then
-    if ! sudo env "PATH=$PATH" "$(command -v t3)" browser setup; then
-      echo 'T3 browser setup failed; core setup continues. See README troubleshooting.'
-      touch "$STATE/browser-pending"
-    else
-      rm -f "$STATE/browser-pending"
-    fi
-  else
-    echo 'This T3 version has no browser setup command; browser automation remains pending.'
-    touch "$STATE/browser-pending"
-  fi
   sudo loginctl enable-linger "$(id -un)"
   systemctl --user import-environment PATH
   # Avoid restarting an already enabled, healthy service when resuming setup.

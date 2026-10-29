@@ -30,10 +30,3 @@ download() {
 }
 
 valid_name() { [[ ${#1} -le 63 && $1 =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; }
-
-browser_setup_supported() {
-  # Some released T3 versions lack the command documented on upstream main.
-  local help
-  help=$(t3 browser --help 2>/dev/null) || return 1
-  grep -Eq '(^|[[:space:]])setup([[:space:]]|$)' <<< "$help"
-}

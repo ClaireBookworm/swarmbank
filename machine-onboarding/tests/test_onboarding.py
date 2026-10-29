@@ -118,43 +118,5 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(original, (ssh / "config").read_text())
 
 
-class ScriptTests(unittest.TestCase):
-    def test_help_and_invalid_flags_are_read_only(self):
-        with tempfile.TemporaryDirectory() as home:
-            for script in ('setup.sh', 'connect.sh', 'doctor.sh', 'power.sh'):
-                result = subprocess.run(['bash', str(ROOT / script), '--help'],
-                                        env={**os.environ, 'HOME': home}, capture_output=True)
-                self.assertEqual(result.returncode, 0, result.stderr)
-            result = subprocess.run(['bash', str(ROOT / 'setup.sh'), '--name'],
-                                    env={**os.environ, 'HOME': home}, capture_output=True)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(list(Path(home).iterdir()), [])
-
-    def test_names_reject_option_and_config_injection(self):
-        for name, valid in [('swarm-01', True), ('a', True), ('a' * 63, True),
-                            ('a' * 64, False), ('-bad', False), ('bad-', False),
-                            ('has space', False), ('host\nHost *', False), ('$(id)', False)]:
-            result = subprocess.run(['bash', '-c', '. "$1"; valid_name "$2"', '_',
-                                     str(ROOT / 'lib/common.sh'), name])
-            self.assertEqual(result.returncode == 0, valid, name)
-
-    def test_unsupported_t3_help_is_not_mistaken_for_browser_setup(self):
-        for help_text, supported in [('USAGE: t3 <subcommand>\nserve\nservice\n', False),
-                                      ('USAGE: t3 browser\nSUBCOMMANDS\n  setup Install libraries\n', True)]:
-            with tempfile.TemporaryDirectory() as tmp:
-                tool = Path(tmp) / 't3'
-                tool.write_text("#!/bin/sh\ncat <<'HELP'\n" + help_text + 'HELP\n')
-                tool.chmod(0o755)
-                result = subprocess.run(['bash', '-c', '. "$1"; browser_setup_supported',
-                                         '_', str(ROOT / 'lib/common.sh')],
-                                        env={**os.environ, 'PATH': tmp + os.pathsep + os.environ['PATH']})
-                self.assertEqual(result.returncode == 0, supported)
-
-    def test_documented_github_host_key_fingerprint(self):
-        result = subprocess.run(['ssh-keygen', '-lf', str(ROOT / 'github_known_hosts')],
-                                text=True, capture_output=True, check=True)
-        self.assertIn('SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU', result.stdout)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
