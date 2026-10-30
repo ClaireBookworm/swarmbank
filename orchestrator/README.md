@@ -214,8 +214,8 @@ The defaults come from Andrii's machine. **Replace them with your own values:**
 ```json
 {
   "accounts": [
-    {"id": "claude-1", "provider": "claude", "email": "you@example.com", "enabled": true, "cap_percent": 95},
-    {"id": "codex-1",  "provider": "codex",  "email": "you@example.com", "enabled": true, "cap_percent": 95}
+    {"id": "claude-1", "provider": "claude", "email": "you@example.com", "enabled": true, "cap_percent": 100},
+    {"id": "codex-1",  "provider": "codex",  "email": "you@example.com", "enabled": true, "cap_percent": 100}
   ],
   "excluded_emails": {"claude": [], "codex": []},
   "models": {
@@ -252,7 +252,10 @@ Notes:
   accounts, models, and the `science` pool. Any setting not listed in this example
   can stay as installed (the default top-level pool is disabled and unused).
 - Leave out `cap_percent` to use the per-provider `caps_percent` defaults
-  (80% of every window). A cap below 100 leaves headroom for your own use.
+  (100% of every window). A cap below 100 leaves headroom for your own use.
+  Existing saved `caps_percent` and account `cap_percent` values remain in effect;
+  change them explicitly to adopt the new default. Provider rejections and
+  extra-usage/credit-spend guards still stop work.
 - `per_account_concurrency: null` means no per-account limit. Codex throttled us
   (HTTP 429) when about 10 sessions started at once on one account. Stagger starts
   and consider 5–8 per account.

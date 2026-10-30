@@ -122,6 +122,11 @@ class UsageAndAdmissionTests(unittest.TestCase):
             usage.claude_line(conn, run, {"type": "rate_limit_event", "rate_limit_info": {
                 "status": "allowed", "rateLimitType": "five_hour", "utilization": 0.85,
                 "resetsAt": time.time() + 3600}})
+        self.assertTrue(self.avail("claude-b")[0])
+        with store.connect() as conn:
+            usage.claude_line(conn, run, {"type": "rate_limit_event", "rate_limit_info": {
+                "status": "allowed", "rateLimitType": "five_hour", "utilization": 1.0,
+                "resetsAt": time.time() + 3600}})
         ok, reason, until = self.avail("claude-b")
         self.assertFalse(ok)
         self.assertIn("five_hour", reason)
@@ -131,7 +136,7 @@ class UsageAndAdmissionTests(unittest.TestCase):
         with store.connect() as conn:
             usage.claude_line(conn, {"account": "claude-b"}, {"type": "rate_limit_event", "rate_limit_info": {
                 "status": "allowed", "rateLimitType": "seven_day", "utilization": 0.1, "resetsAt": time.time() + 9999,
-                "unifiedWindows": {"five_hour": {"utilization": 0.9, "resetsAt": time.time() + 999},
+                "unifiedWindows": {"five_hour": {"utilization": 1.0, "resetsAt": time.time() + 999},
                                    "seven_day": {"utilization": 0.1, "resetsAt": time.time() + 9999}}}})
         ok, reason, _ = self.avail("claude-b")
         self.assertFalse(ok)
@@ -141,6 +146,24 @@ class UsageAndAdmissionTests(unittest.TestCase):
         with store.connect() as conn:
             usage.claude_line(conn, {"account": "claude-b"}, {"type": "rate_limit_event", "rate_limit_info": {
                 "status": "allowed_warning", "rateLimitType": "seven_day", "resetsAt": time.time() + 9999}})
+        self.assertFalse(self.avail("claude-b")[0])
+
+    def test_codex_default_cap_allows_below_100_and_stops_at_100(self):
+        for window in ("primary", "secondary"):
+            with self.subTest(window=window):
+                with store.connect() as conn:
+                    conn.execute("delete from usage")
+                    store.record_usage(conn, "codex-b", window, 99.9, time.time() + 999, "observed")
+                self.assertTrue(self.avail("codex-b")[0])
+                with store.connect() as conn:
+                    store.record_usage(conn, "codex-b", window, 100, time.time() + 999, "observed")
+                self.assertFalse(self.avail("codex-b")[0])
+
+    def test_provider_rejection_stops_below_default_cap(self):
+        with store.connect() as conn:
+            usage.claude_line(conn, {"account": "claude-b"}, {"type": "rate_limit_event", "rate_limit_info": {
+                "status": "rejected", "rateLimitType": "five_hour", "utilization": 0.5,
+                "resetsAt": time.time() + 3600}})
         self.assertFalse(self.avail("claude-b")[0])
 
     def test_warning_below_cap_uses_numeric_cap(self):
@@ -279,7 +302,7 @@ class UsageAndAdmissionTests(unittest.TestCase):
 
     def test_window_reset_restores_availability(self):
         with store.connect() as conn:
-            store.record_usage(conn, "codex-b", "primary", 95, time.time() - 1, "observed")
+            store.record_usage(conn, "codex-b", "primary", 100, time.time() - 1, "observed")
         self.assertTrue(self.avail("codex-b")[0])
 
     def test_overage_flag_is_reported(self):
@@ -342,7 +365,7 @@ class UsageAndAdmissionTests(unittest.TestCase):
         with store.connect() as conn:
             conn.execute("insert into runs(id, account, provider, session_id, state, created_at, updated_at) "
                          "values ('r1','claude-b','claude','s1','waiting_reset',?,?)", (now, now))
-            store.record_usage(conn, "claude-b", "five_hour", 99, now + 3600, "allowed")
+            store.record_usage(conn, "claude-b", "five_hour", 100, now + 3600, "allowed")
         self.orch.tick()
         self.assertNotIn("r1", [s[0] for s in started])  # its account is capped: it waits
         self.assertTrue(all(acc != "claude-b" for _, acc in started))

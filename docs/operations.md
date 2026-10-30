@@ -34,7 +34,7 @@ another device use an SSH tunnel: `ssh -N -L 8318:127.0.0.1:8318 USER@HOST`.
 
 | Guard | Default | Effect |
 | --- | --- | --- |
-| Usage cap per account | 80% | No new turns; running turns interrupted until reset. |
+| Usage cap per account | 100% | No new turns; running turns interrupted until reset. |
 | `disk_reserve_gib` | 50 | No new runs; `fetch` refuses downloads. |
 | `disk_critical_gib` | 25 | All runs interrupted (sessions kept). |
 | `memory_reserve_percent` (macOS) | 15 | No new starts/resumes while free memory is lower. |
