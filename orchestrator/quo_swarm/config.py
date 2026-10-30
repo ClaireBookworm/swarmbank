@@ -30,8 +30,8 @@ DEFAULT = {
     # starts no new turns; running turns are interrupted and wait for the reset.
     # Sessions never move to another account.
     "caps_percent": {
-        "claude": {"five_hour": 80, "seven_day": 80, "seven_day_opus": 80, "seven_day_sonnet": 80},
-        "codex": {"primary": 80, "secondary": 80},
+        "claude": {"five_hour": 100, "seven_day": 100, "seven_day_opus": 100, "seven_day_sonnet": 100},
+        "codex": {"primary": 100, "secondary": 100},
     },
     # Models and reasoning effort for each provider.
     "models": {
