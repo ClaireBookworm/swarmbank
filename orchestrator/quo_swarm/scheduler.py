@@ -18,7 +18,7 @@ import threading
 import time
 import traceback
 
-from . import config, guard, macos, runner, store
+from . import config, guard, health, macos, runner, store
 
 IDENTITY_INTERVAL = 300
 TICK = 5
@@ -362,6 +362,7 @@ class Orchestrator:
         while not stop.is_set():
             try:
                 self.tick()
+                health.heartbeat()
             except Exception:  # noqa: BLE001
                 with store.connect() as conn:
                     store.event(conn, "error", traceback.format_exc()[-800:])

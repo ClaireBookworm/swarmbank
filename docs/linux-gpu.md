@@ -228,6 +228,22 @@ In LXC the kernel boot ID and uptime can belong to the host; use the container
 PID 1 start time, its boot journal and the service's activation time to distinguish
 a completed container reboot from shutdown still in progress.
 
+The monitor runs continuously without a research agent or another model login.
+Each completed scheduler tick writes a private heartbeat and notifies systemd.
+Worker loss is checked every five seconds; orphan scopes are stopped before a
+session resumes. The service's 120-second systemd watchdog also restarts a
+stalled scheduler even if its HTTP server remains responsive. The console shows
+heartbeat freshness and enabled research pools, rather than the unused legacy
+pool's launch switch. Intentional waits at usage limits remain waits; the monitor
+does not switch accounts or bypass provider limits. Increase the watchdog period
+if a deployment has many account checks that may each block for a minute.
+
+For viewing without an SSH tunnel, use the repository's private Tailscale Serve
+setup. Keep the console bound to loopback, allow only the operator's tailnet
+devices in `console.allow`, and expose it with Tailscale Serve. Do not use Funnel
+or an unrestricted public listener. Keep device addresses and the machine's
+private viewer URL in local configuration, outside the repository.
+
 ## Validation evidence
 
 Setup probes on Debian 13, x86_64 LXC, 24 online CPUs, 24 GB RAM without swap
@@ -235,7 +251,7 @@ and an RTX 4090 showed:
 
 | Check | Result |
 | --- | --- |
-| Existing account/usage/admission safety tests plus datastore/recovery tests | 31 passed |
+| Account/usage/admission safety, datastore, recovery and health tests | 34 passed |
 | Imports inside the production bubblewrap command | All ten requested packages passed |
 | JAX through `gpu-run` | CUDA device 0; jitted 64-by-64 matrix product returned 64 |
 | MCX through `gpu-run` | One 4090 detected; 10,000 photons simulated with finite positive flux |
@@ -245,7 +261,9 @@ and an RTX 4090 showed:
 | Memory enforcement | 512-MiB allocation under a 128-MiB test scope killed with exit 137 |
 | Orphan run scope after orchestrator loss | Stopped before requeuing its original session |
 | Unexpected serve-process termination | systemd restarted the service with a new PID |
+| Deliberately suspended scheduler | Shortened test watchdog expired; service restarted automatically |
 | Actual LXC reboot | Lingering user and enabled service returned at container boot |
+| GPU access after reboot | Per-user device ACLs restored; sandbox tests passed |
 
 The Linux baseline had no running data service, no shared-store mount and no
 GPU devices in the sandbox. These probes demonstrate the added capabilities

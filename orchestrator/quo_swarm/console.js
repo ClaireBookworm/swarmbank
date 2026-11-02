@@ -26,8 +26,12 @@ function poolCards(d) {
   const poolRows = (d.pools || []).map(p => [p.name, `${p.enabled ? "ON" : "paused"} · ${p.active}/${p.concurrency} active · ${p.waiting} waiting · ${p.completed} done`]);
   return [
     card("Pools", poolRows),
-    card("Pool (quo)", [["Launch", d.launch_enabled ? "ENABLED" : "disabled"], ["Concurrency", String(d.pool.concurrency)],
-                  ["Per account", String(d.pool.per_account_concurrency)], ["Task", d.task_configured ? "configured" : "not set"]]),
+    card("Monitor", [["Scheduler", d.health?.ok ? "healthy" : "not reporting"],
+                      ["Last check", d.health?.checked_at ? ago(d.health.checked_at, d.now) : "waiting"],
+                      ["Recovery", d.health?.watchdog ? "systemd watchdog + worker checks" : "worker checks"],
+                      ["Workers", `${active} active · ${waiting} waiting`],
+                      ["RAM per run", d.resources?.memory_max_per_run || "configured by host"],
+                      ["CPU per run", `${d.resources?.cpu_per_run ?? "—"} cores`]]),
     card("Runs", [["Active", String(active)], ["Waiting", String(waiting)], ["Completed", String(counts.completed || 0)],
                   ["Failed", String(counts.failed || 0)]]),
     card("Models", [["Claude", `${d.models.claude.model || "not set"} ${d.models.claude.effort || ""}`],
@@ -75,9 +79,13 @@ async function refresh() {
     const p = $("proxy");
     p.textContent = d.proxy.ok ? "No proxy ✓" : "PROXY DETECTED";
     p.className = "pill " + (d.proxy.ok ? "ok" : "bad");
+    const h = $("health");
+    h.textContent = d.health?.ok ? "Monitor healthy" : "Monitor not reporting";
+    h.className = "pill " + (d.health?.ok ? "ok" : "bad");
     const l = $("launch");
-    l.textContent = d.launch_enabled ? "Launch ENABLED" : "Launch disabled";
-    l.className = "pill " + (d.launch_enabled ? "warn" : "ok");
+    const enabled = (d.pools || []).some(p => p.enabled && p.concurrency > 0);
+    l.textContent = enabled ? "Research enabled" : "Research paused";
+    l.className = "pill " + (enabled ? "ok" : "warn");
     $("pool").replaceChildren(...poolCards(d));
     $("accounts").replaceChildren(...d.accounts.map(a => accountCard(a, d.now)));
     $("runs").replaceChildren(...(d.runs.length ? d.runs.map(r => el("tr", {},

@@ -3,6 +3,7 @@
 import json
 import os
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -313,6 +314,17 @@ class UsageAndAdmissionTests(unittest.TestCase):
         with patch.object(scheduler.runner, 'DARWIN', False), patch.object(self.orch, 'interrupt', side_effect=interrupted) as signal:
             self.orch.interrupt_all()
         signal.assert_called_once_with('live')
+
+    def test_failed_scheduler_tick_does_not_feed_watchdog(self):
+        stop = threading.Event()
+        def broken_tick():
+            stop.set()
+            raise RuntimeError("scheduler fixture failure")
+        with patch.object(self.orch, "recover"), patch.object(self.orch, "interrupt_all"), \
+             patch.object(self.orch, "tick", side_effect=broken_tick), \
+             patch.object(scheduler.health, "heartbeat") as heartbeat:
+            self.orch.serve(stop)
+        heartbeat.assert_not_called()
 
     def test_window_reset_restores_availability(self):
         with store.connect() as conn:

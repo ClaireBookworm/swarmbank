@@ -108,8 +108,12 @@ def cmd_status(args) -> int:
     if args.json:
         print(json.dumps(data, indent=2))
         return 0
-    print(f"launch: {'ENABLED' if data['launch_enabled'] else 'disabled'}   concurrency: {data['pool']['concurrency']}"
+    enabled = [p for p in data["pools"] if p["enabled"] and p["concurrency"] > 0]
+    print(f"research: {'ENABLED' if enabled else 'paused'}   target: {sum(p['concurrency'] for p in enabled)}"
           f"   proxy: {'none (ok)' if data['proxy']['ok'] else 'DETECTED'}")
+    monitor = data["health"]
+    print(f"monitor: {'healthy' if monitor['ok'] else 'not reporting'}"
+          f"   watchdog: {'enabled' if monitor['watchdog'] else 'not configured'}")
     for a in data["accounts"]:
         windows = ", ".join(f"{u['window']} {u['used_percent']:.0f}%" for u in a["usage"]
                             if u["used_percent"] is not None) or "no usage observed"

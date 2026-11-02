@@ -11,7 +11,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 
-from . import config, store
+from . import config, health, store
 
 
 def _proxy_safety() -> dict:
@@ -84,7 +84,7 @@ def snapshot() -> dict:
         "now": now, "launch_enabled": cfg["launch_enabled"], "pool": cfg["pool"], "models": cfg["models"],
         "task_configured": bool(cfg.get("task_prompt")), "excluded": cfg["excluded_emails"],
         "accounts": accounts, "pools": pools, "runs": runs, "run_counts": counts, "events": events,
-        "proxy": _proxy_safety(),
+        "proxy": _proxy_safety(), "health": health.snapshot(), "resources": cfg["resources"],
     }
 
 

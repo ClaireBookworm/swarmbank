@@ -9,6 +9,10 @@ Environment=PYTHONPATH=%h/.local/share/quo-swarm/app PYTHONUNBUFFERED=1 PYTHONDO
 ExecStart=/usr/bin/python3 -m quo_swarm serve
 Restart=on-failure
 RestartSec=10
+NotifyAccess=main
+WatchdogSec=120
+WatchdogSignal=SIGKILL
+LimitCORE=0
 UMask=0077
 # Agent runs live in quo-agents.slice (separate scopes); stopping this service
 # explicitly interrupts them and their sessions resume later on the same account.
