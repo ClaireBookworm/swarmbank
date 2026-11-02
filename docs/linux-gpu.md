@@ -264,10 +264,13 @@ and an RTX 4090 showed:
 | Deliberately suspended scheduler | Shortened test watchdog expired; service restarted automatically |
 | Actual LXC reboot | Lingering user and enabled service returned at container boot |
 | GPU access after reboot | Per-user device ACLs restored; sandbox tests passed |
+| Initial live observation | Four fresh researchers active after 20.5 minutes; highest whole-run peak 684 MiB; no OOM or memory-limit events |
+| Natural research tool use | Successful `gpu-run` MCX simulations and `fetch` requests observed in independent runs |
 
 The Linux baseline had no running data service, no shared-store mount and no
 GPU devices in the sandbox. These probes demonstrate the added capabilities
 while preserving non-listability and single-copy downloads. They do not measure
-publication throughput or scientific quality. Account login, first-run
-observation and actual reboot recovery are deployment checks, separate from
-these reproducible setup probes.
+publication throughput or scientific quality. The live observation used the
+reference-checked wave/field objective in `config/prompt.txt`; no research topics
+or operator notes were assigned. Repeat the account, first-run and reboot checks
+for each deployment rather than relying on this machine's results.
