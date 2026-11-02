@@ -152,6 +152,43 @@ def fetch(url: str, run_id: str = "") -> Path:
         return target
 
 
+def evict(target_free_gib: float, keep_days: float = 2.0) -> int:
+    """Delete least recently fetched objects until free disk reaches the target; returns bytes freed.
+
+    Objects fetched in the last keep_days stay. A deleted object comes back on its next fetch at the same path,
+    and open files stay readable until closed (unlink), so running agents lose at most a re-download.
+    """
+    last: dict[str, float] = {}
+    index = _index()
+    try:
+        for line in LOG.read_text("utf-8").splitlines():
+            entry = json.loads(line)
+            path = index.get("url:" + entry.get("url", ""))
+            if path:
+                last[path] = max(last.get(path, 0), entry.get("t", 0))
+    except (OSError, ValueError):
+        pass
+    files = [p for p in OBJECTS.glob("*/*") if p.is_file()]
+    files.sort(key=lambda p: last.get(str(p), p.stat().st_mtime))
+    cutoff, freed = time.time() - keep_days * 86400, 0
+    for path in files:
+        if _free_gib() >= target_free_gib or last.get(str(path), path.stat().st_mtime) > cutoff:
+            break
+        with _locks_guard:
+            freed += path.stat().st_size
+            path.unlink()
+            try:
+                path.parent.rmdir()
+            except OSError:
+                pass
+            index = {k: v for k, v in _index().items() if v != str(path)}
+            tmp = INDEX.with_suffix(".tmp")
+            tmp.write_text(json.dumps(index, indent=0), "utf-8")
+            tmp.replace(INDEX)
+        _log({"evicted": str(path)})
+    return freed
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
