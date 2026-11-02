@@ -5,6 +5,7 @@ process must already be running. Tests use the production sandbox builder.
 """
 import concurrent.futures
 import json
+import shlex
 import subprocess
 import tempfile
 import textwrap
@@ -55,6 +56,9 @@ probe = textwrap.dedent('''
     assert os.environ['OMP_NUM_THREADS'] == '4'
     assert os.environ['JAX_PLATFORMS'] == 'cpu'
     assert 'sci' in subprocess.check_output(['sci','--help'],text=True).lower()
+    from sci import keys
+    signing_key=keys.load_private_key(pathlib.Path('/home/agent/.sci/key.pem'))
+    signing_key.public_key().verify(signing_key.sign(b'sandbox signing check'),b'sandbox signing check')
     for path in ['/root/.codex/auth.json', '/home/agent/.sci/../../other-profile',
                  '/opt/quo-data/index.json']:
         assert not pathlib.Path(path).exists(), path
@@ -84,7 +88,7 @@ probe = textwrap.dedent('''
                       'fetch_sha256':hashlib.sha256(downloaded.read_bytes()).hexdigest(),
                       'listing':'denied','shared_writes':'denied'}),flush=True)
 ''')
-print(checked(["python", "-c", probe]), flush=True)
+print(checked(["/bin/bash", "-lc", "python -c " + shlex.quote(probe)]), flush=True)
 
 gpu = textwrap.dedent('''
     import json, jax, jax.numpy as jnp, numpy as np, pmcx
@@ -100,7 +104,7 @@ gpu = textwrap.dedent('''
     print(json.dumps({'jax_devices':[str(d) for d in devices],
                       'mcx_devices':len(info),'mcx_flux_sum':float(result['flux'].sum())}),flush=True)
 ''')
-print(checked(["gpu-run", "python", "-c", gpu]), flush=True)
+print(checked(["/bin/bash", "-lc", "gpu-run python -c " + shlex.quote(gpu)]), flush=True)
 
 timed = "import json,time; start=time.monotonic(); time.sleep(2); print(json.dumps([start,time.monotonic()]))"
 with concurrent.futures.ThreadPoolExecutor(2) as executor:

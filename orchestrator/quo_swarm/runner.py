@@ -154,6 +154,7 @@ def sandbox_command(account: dict, cfg: dict, run_id: str, session_id: str | Non
            "--ro-bind", str(SCI_VENV), "/opt/sci",
            "--ro-bind", str(SCI_VENV), str(SCI_VENV),
            "--ro-bind", str(config.ROOT / "tools"), "/opt/tools",
+           "--ro-bind", str(config.ROOT / "tools/linux-profile"), "/etc/profile",
            "--ro-bind", str(OBJECTS), str(SANDBOX_OBJECTS),
            "--chmod", "0111", str(SANDBOX_OBJECTS.parent)]
     # uv-managed Python interpreters live outside their venv. Mount only that runtime,

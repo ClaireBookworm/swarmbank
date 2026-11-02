@@ -13,7 +13,7 @@ On the container, as root, install the prerequisites and create a dedicated user
 
 ```sh
 apt-get update
-apt-get install -y bubblewrap python3 python3-venv git curl dbus-user-session nodejs npm
+apt-get install -y bubblewrap python3 python3-venv git curl dbus-user-session nodejs npm acl poppler-utils
 useradd --create-home --shell /bin/bash "$SWARM_USER"
 loginctl enable-linger "$SWARM_USER"
 runuser -u "$SWARM_USER" -- bwrap \
@@ -60,6 +60,13 @@ replace a kernel NVIDIA driver inside an LXC container.
 The runner mounts both the venv and its uv-managed interpreter read-only,
 including uv's minor-version alias. Mounting only the venv leaves `python`
 pointing outside the sandbox and produces an `execvp` failure.
+
+The official CLI runs shell tools through a login shell. Debian's `/etc/profile`
+resets PATH, which originally hid `sci`, `python`, `fetch` and `gpu-run` despite
+their presence in the launch environment. The installer builds a private profile
+copy with the tools PATH appended; bubblewrap mounts it read-only over
+`/etc/profile`. The host's profile is unchanged. The integration check uses
+`bash -lc` for the physics and GPU probes to cover this execution path.
 
 ## Private configuration and sizing
 
@@ -127,6 +134,24 @@ in addition to `/dev/nvidia0`, `/dev/nvidiactl` and `/dev/nvidia-uvm`; without
 them CUDA initialization failed even though the GPU worked outside bubblewrap.
 Hosts with driver libraries outside `/usr` need explicit read-only mounts for
 those libraries before enabling GPU work.
+
+Test permissions after a real container reboot. In this LXC, Proxmox recreated
+the NVIDIA nodes with mode 0660 and root ownership, removing the non-root user's
+access even though the service started successfully. As root, grant the dedicated
+user access to the compute nodes through a persistent tmpfiles rule:
+
+```sh
+SWARM_UID="$(id -u "$SWARM_USER")"
+for device in nvidia0 nvidiactl nvidia-uvm; do
+  printf 'a+ /dev/%s - - - - u:%s:rw-\n' "$device" "$SWARM_UID"
+done > /etc/tmpfiles.d/quo-swarm-gpu.conf
+systemd-tmpfiles --create /etc/tmpfiles.d/quo-swarm-gpu.conf
+```
+
+This grants one host user access, and the agent still receives only the explicit
+device mounts. If device nodes appear after tmpfiles setup on another host,
+order a root oneshot applying this rule after device creation and before the
+user manager. Do not make all devices world-writable.
 
 Run GPU work with `gpu-run python simulation.py`. It takes an exclusive flock
 on one empty, read-only mounted inode and then execs the command, retaining
@@ -199,6 +224,9 @@ default target. Before leaving it unattended, test an unexpected service
 termination, then reboot the container and verify the service is active,
 the pool is still enabled, and sessions resume. A service enablement check or
 user-manager restart alone is not evidence of an actual successful reboot.
+In LXC the kernel boot ID and uptime can belong to the host; use the container
+PID 1 start time, its boot journal and the service's activation time to distinguish
+a completed container reboot from shutdown still in progress.
 
 ## Validation evidence
 
@@ -217,6 +245,7 @@ and an RTX 4090 showed:
 | Memory enforcement | 512-MiB allocation under a 128-MiB test scope killed with exit 137 |
 | Orphan run scope after orchestrator loss | Stopped before requeuing its original session |
 | Unexpected serve-process termination | systemd restarted the service with a new PID |
+| Actual LXC reboot | Lingering user and enabled service returned at container boot |
 
 The Linux baseline had no running data service, no shared-store mount and no
 GPU devices in the sandbox. These probes demonstrate the added capabilities

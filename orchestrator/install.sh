@@ -23,6 +23,13 @@ fi
 # Tools are mounted read-only; the single empty lock inode is shared read-only too.
 install -m 755 "$SRC/tools/fetch" "$R/tools/fetch"
 install -m 755 "$SRC/tools/gpu-run" "$R/tools/gpu-run"
+{
+  cat /etc/profile
+  printf '\n'
+  cat "$SRC/tools/linux-shell-env.sh"
+} > "$R/tools/linux-profile.new"
+chmod 444 "$R/tools/linux-profile.new"
+mv "$R/tools/linux-profile.new" "$R/tools/linux-profile"
 [ -e "$R/state/gpu.lock" ] || : > "$R/state/gpu.lock"
 chmod 444 "$R/state/gpu.lock"
 
