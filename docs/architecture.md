@@ -10,7 +10,7 @@ short map plus what we added.
 ```
 serve (one process)
  ├─ console        127.0.0.1:8318   read-only usage page "/" and operator page "/runs"
- ├─ data service   127.0.0.1:8319   shared downloads (macOS; see data-sharing.md)
+ ├─ data service   127.0.0.1:8319   shared downloads (Linux + macOS; see data-sharing.md)
  └─ scheduler tick (every few s)
       ├─ read usage per account (CLI session logs / usage endpoints) → cap check
       ├─ guards: official binary, clean env, no proxy, identity == configured email

@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Serialize a GPU command across sandboxes without a writable shared mailbox."""
+import fcntl
+import os
+import sys
+
+if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+    sys.exit("usage: gpu-run <command> [args ...] (one shared GPU job at a time)")
+
+# flock works on a read-only fd. A read-only bind of one empty inode prevents
+# replacement, unlinking or communication through file contents by researchers.
+fd = os.open("/run/quo-gpu.lock", os.O_RDONLY)
+fcntl.flock(fd, fcntl.LOCK_EX)
+os.set_inheritable(fd, True)
+os.environ["JAX_PLATFORMS"] = "cuda,cpu"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.80"
+try:
+    os.execvp(sys.argv[1], sys.argv[1:])
+except OSError as exc:
+    sys.exit(f"gpu-run: {exc}")

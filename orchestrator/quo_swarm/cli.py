@@ -205,16 +205,18 @@ def cmd_serve(args) -> int:
     signal.signal(signal.SIGINT, lambda *_: stop.set())
     server = console_server()
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    if sys.platform == "darwin":
-        from .datastore import serve as data_server
-        data = data_server()
-        threading.Thread(target=data.serve_forever, daemon=True).start()
+    from .datastore import serve as data_server
+    data = data_server()
+    threading.Thread(target=data.serve_forever, daemon=True).start()
     orchestrator = Orchestrator()
     worker = threading.Thread(target=orchestrator.serve, args=(stop,), daemon=True)
     worker.start()
     stop.wait()
     worker.join(timeout=30)  # lets the orchestrator interrupt live runs (macOS)
     server.shutdown()
+    data.shutdown()
+    server.server_close()
+    data.server_close()
     return 0
 
 

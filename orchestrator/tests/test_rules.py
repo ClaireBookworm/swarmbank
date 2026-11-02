@@ -5,12 +5,18 @@ import os
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = tempfile.mkdtemp(prefix="quo-swarm-test-")
 os.environ["QUO_SWARM_ROOT"] = ROOT
 
 from quo_swarm import config, guard, scheduler, store, usage  # noqa: E402
+
+# Other test modules may have imported config before this module set the env.
+for _name, _path in {"ROOT": "", "CONFIG": "config.json", "ACCOUNTS": "accounts", "RUNS": "runs",
+                     "STATE": "state", "DB": "state/swarm.sqlite", "DATA": "data"}.items():
+    setattr(config, _name, Path(ROOT) / _path)
 
 _cfg = config.load()
 _cfg["accounts"] = [
@@ -95,6 +101,9 @@ class GuardTests(unittest.TestCase):
 
 class UsageAndAdmissionTests(unittest.TestCase):
     def setUp(self):
+        binary = patch("quo_swarm.guard.binary", return_value=Path("/test/official-cli"))
+        binary.start()
+        self.addCleanup(binary.stop)
         self.cfg = config.init()
         self.cfg["disk_reserve_gib"] = 0  # test state lives on a small tmpfs
         self.cfg["disk_critical_gib"] = 0
@@ -276,6 +285,34 @@ class UsageAndAdmissionTests(unittest.TestCase):
             self.orch.reconcile(conn)
             state = conn.execute("select state from runs where id='dead1'").fetchone()["state"]
         self.assertEqual(state, "waiting_resume")
+
+    def test_linux_recovery_stops_orphan_scope_before_requeue(self):
+        now = time.time()
+        with store.connect() as conn:
+            conn.execute("insert into runs(id, account, provider, session_id, state, created_at, updated_at) "
+                         "values ('orphan','codex-b','codex','s','running',?,?)", (now, now))
+        calls = []
+        def systemctl(command, **kwargs):
+            with store.connect() as conn:
+                self.assertEqual(conn.execute("select state from runs where id='orphan'").fetchone()[0], 'running')
+            calls.append(command)
+        with patch.object(scheduler.runner, 'DARWIN', False), patch.object(scheduler.subprocess, 'run', side_effect=systemctl):
+            self.orch.recover()
+        self.assertEqual(calls[-1], ['systemctl','--user','stop','quo-run-orphan.scope'])
+        with store.connect() as conn:
+            self.assertEqual(conn.execute("select state from runs where id='orphan'").fetchone()[0], 'waiting_resume')
+
+    def test_linux_shutdown_marks_runs_before_interrupting_scopes(self):
+        now = time.time()
+        with store.connect() as conn:
+            conn.execute("insert into runs(id, account, provider, session_id, state, pid, created_at, updated_at) "
+                         "values ('live','codex-b','codex','s','running',123,?,?)", (now, now))
+        def interrupted(run_id):
+            with store.connect() as conn:
+                self.assertEqual(conn.execute("select state from runs where id=?", (run_id,)).fetchone()[0], 'interrupting')
+        with patch.object(scheduler.runner, 'DARWIN', False), patch.object(self.orch, 'interrupt', side_effect=interrupted) as signal:
+            self.orch.interrupt_all()
+        signal.assert_called_once_with('live')
 
     def test_window_reset_restores_availability(self):
         with store.connect() as conn:

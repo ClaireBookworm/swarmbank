@@ -47,7 +47,9 @@ DEFAULT = {
     "disk_reserve_gib": 50,
     # Below this, every running agent is interrupted (sessions kept) to protect the host.
     "disk_critical_gib": 25,
-    "resources": {"cpu_per_run": 1.0, "memory_high_per_run": "2G", "memory_max_per_run": "3G"},
+    "resources": {"cpu_per_run": 1.0, "threads_per_run": 1,
+                  "memory_high_per_run": "2G", "memory_max_per_run": "3G"},
+    "gpu": {"enabled": False},
     # Hosts checked for a listening retired proxy port (shown on the console).
     "proxy_check": {"hosts": ["127.0.0.1"], "port": 8317},
     "console": {
@@ -56,7 +58,7 @@ DEFAULT = {
         # Tailnet devices allowed to view the console (Tailscale Serve X-Forwarded-For).
         "allow": ["127.0.0.1"],
     },
-    # Shared download service (macOS): agents run `fetch URL` and read one read-only copy.
+    # Agents run `fetch URL` and read one read-only copy on either platform.
     "data_service": {"host": "127.0.0.1", "port": 8319, "max_file_gib": 60},
 }
 

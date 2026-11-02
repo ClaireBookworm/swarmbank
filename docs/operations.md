@@ -12,7 +12,8 @@ quo-swarm-service start                         # tmux session "quo-swarm", rest
 quo-swarm resume --pool science                 # enables the pool
 ```
 
-Linux: `./install.sh` and systemd, per `orchestrator/README.md`. The data service is macOS-only for now.
+Linux: `./install.sh` and systemd, per `orchestrator/README.md`. For GPU tools and shared downloads in LXC,
+see [`linux-gpu.md`](linux-gpu.md).
 
 ## Daily commands
 

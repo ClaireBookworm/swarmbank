@@ -11,7 +11,7 @@ Restart=on-failure
 RestartSec=10
 UMask=0077
 # Agent runs live in quo-agents.slice (separate scopes); stopping this service
-# interrupts them and their sessions resume later on the same account.
+# explicitly interrupts them and their sessions resume later on the same account.
 KillMode=mixed
 TimeoutStopSec=60
 CPUWeight=50
