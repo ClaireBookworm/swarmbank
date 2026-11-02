@@ -41,6 +41,12 @@ another device use an SSH tunnel: `ssh -N -L 8318:127.0.0.1:8318 USER@HOST`.
 
 ## Recovering
 
+- **All runs stuck in `waiting_reset` while real usage is low** (fixed in `usage.py`/`store.py`): newer Claude Code
+  `rate_limit_event`s put the percent only in `unifiedWindows`; the old code kept the last percent (90%) into every
+  new window, so each reset resumed one run, re-read 90%, and paused everyone. The swarm sat idle ~25 h. Now the
+  nested percent is read, and a new window without a percent clears the old one. Check: `quo-swarm status` usage
+  vs claude.ai usage page; `select * from usage` in `state/swarm.sqlite`.
+
 - Runs wrongly `failed` by a crash can be requeued: `update runs set state='waiting_resume' where id=…` in
   `state/swarm.sqlite`, then let the scheduler resume them.
 - Wait loops in scripts: use `until <check>; do sleep 5; done`, not fixed sleeps.

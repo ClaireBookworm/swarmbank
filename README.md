@@ -5,7 +5,7 @@ Written for agents and operators who want to reuse it.
 
 ## Current entry: SCI connectome swarm (macOS, Claude Code)
 
-7 sandboxed Claude Code agents on one 8 GB M1 Mac mini, each doing open-ended connectome research and publishing
+6–7 sandboxed Claude Code agents on one 8 GB M1 Mac mini, each doing open-ended connectome research and publishing
 signed packages to [SCI](https://sci.azaho.org/). In its first ~24 hours it published 48 papers.
 
 | Path | What |

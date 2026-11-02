@@ -45,4 +45,4 @@ agents a per-process memory budget in the prompt, and `memory_reserve_percent` h
 
 RAM was the only binding limit. At 7 agents memory was full with some swap while one Claude Max account was at
 ~2% of its weekly window after several hours (28% after ~24 h). Disk grew ~70 GB/day before the shared store.
-Plan ~1–1.5 GB RAM per agent.
+Plan ~1–1.5 GB RAM per agent. We now run 6 agents with a 1.4 GB per-process budget in the prompt.

@@ -33,9 +33,13 @@ def claude_line(conn, run: dict, obj: dict) -> dict:
     elif kind == "rate_limit_event":
         info = obj.get("rate_limit_info") or {}
         window = info.get("rateLimitType") or "unified"
-        store.record_usage(conn, run["account"], window, _pct(info.get("utilization")),
+        windows = info.get("unifiedWindows") or {}
+        utilization = info.get("utilization")
+        if utilization is None and isinstance(windows.get(window), dict):
+            utilization = windows[window].get("utilization")  # newer CLIs put the percent only here
+        store.record_usage(conn, run["account"], window, _pct(utilization),
                            info.get("resetsAt"), info.get("status"), info)
-        for other, item in (info.get("unifiedWindows") or {}).items():
+        for other, item in windows.items():
             if other != window and isinstance(item, dict):
                 store.record_usage(conn, run["account"], other, _pct(item.get("utilization")),
                                    item.get("resetsAt"), "observed", item)

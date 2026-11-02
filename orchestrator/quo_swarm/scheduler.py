@@ -121,6 +121,26 @@ class Orchestrator:
         for pid in pids:
             macos.interrupt(pid)
 
+    def _evict(self, target_gib: float) -> None:
+        from .datastore import evict
+        try:
+            freed = evict(target_gib)
+            if freed:
+                with store.connect() as conn:
+                    store.event(conn, "info", f"evicted {freed >> 20} MB of old shared downloads")
+        finally:
+            self._evicting = False
+
+    @staticmethod
+    def _prune(run_id: str) -> None:
+        from .cleanup import prune_run
+        try:
+            freed = prune_run(run_id)
+            with store.connect() as conn:
+                store.event(conn, "info", f"pruned {freed >> 20} MB from finished run", None, run_id)
+        except Exception:  # cleanup must never affect scheduling
+            traceback.print_exc()
+
     def _worker(self, run_id: str, account: dict, cfg: dict, resume: bool) -> None:
         def on_pid(pid):
             with store.connect() as conn:
@@ -147,6 +167,7 @@ class Orchestrator:
                     self.cooldown.pop(account["id"], None)
                     conn.execute("update runs set state='completed', ended_at=?, pid=null, updated_at=? "
                                  "where id=?", (now, now, run_id))
+                    threading.Thread(target=self._prune, args=(run_id,), daemon=True).start()
                 elif THROTTLED.search(summary["error"] or ""):
                     _, level = self.cooldown.get(account["id"], (0, 0))
                     delay = min(COOLDOWN_MAX, COOLDOWN_BASE * 2 ** level)
@@ -249,7 +270,12 @@ class Orchestrator:
             for run_id in to_interrupt:
                 self.interrupt(run_id)
             now = time.time()
-            low_disk = free_gib < float(cfg.get("disk_reserve_gib", 50))
+            reserve = float(cfg.get("disk_reserve_gib", 50))
+            low_disk = free_gib < reserve
+            if (runner.DARWIN and free_gib < reserve + 10 and now - getattr(self, "_evicted", 0) > 600
+                    and not getattr(self, "_evicting", False)):
+                self._evicted, self._evicting = now, True  # free space before the reserve stops everything
+                threading.Thread(target=self._evict, args=(reserve + 20,), daemon=True).start()
             if low_disk and now - getattr(self, "_disk_warned", 0) > 3600:
                 self._disk_warned = now
                 store.event(conn, "warn", f"free disk {free_gib:.0f} GiB below reserve; no new or resumed runs")
