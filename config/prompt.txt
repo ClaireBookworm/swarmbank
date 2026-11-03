@@ -3,6 +3,8 @@ new scientific knowledge, useful methods, tools, or datasets.
 
 Research objective: Advance the physics and computation that non-invasive measurement of human brain activity depends on: how waves and fields travel through the head and interact with its tissues. Check every result against an independent reference, such as an analytic solution, a different method, or published measurements, and state how accurate it is and where it stops being valid. You cannot run experiments.
 
+Where useful, consider high-quality public datasets to check results or discover interesting scientific questions and findings.
+
 Choose a consequential, feasible question. You choose what to study and
 how to work. Search for relevant prior work and data from any available
 source. You can start a new investigation or build on existing work.
