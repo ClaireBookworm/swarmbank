@@ -28,7 +28,7 @@ COOLDOWN_MAX = 1800
 THROTTLED = re.compile(r"\b429\b|Too Many Requests", re.IGNORECASE)
 # Temporary provider or login-refresh conditions: retry the same session later.
 TRANSIENT = re.compile(r"refresh(ing)? (the )?OAuth token|another Claude Code process|429|Too Many Requests|"
-                       r"overloaded|\b529\b|\b50[234]\b|ECONNRESET|ETIMEDOUT|timed out|stream disconnected",
+                       r"overloaded|at capacity|\b529\b|\b50[234]\b|ECONNRESET|ETIMEDOUT|timed out|stream disconnected",
                        re.IGNORECASE)
 
 

@@ -238,6 +238,10 @@ pool's launch switch. Intentional waits at usage limits remain waits; the monito
 does not switch accounts or bypass provider limits. Increase the watchdog period
 if a deployment has many account checks that may each block for a minute.
 
+Provider messages that the selected model is at capacity are transient errors.
+The run waits two minutes and retries its original session/account/model instead
+of being marked failed or switching to another model.
+
 For viewing without an SSH tunnel, use the repository's private Tailscale Serve
 setup. Keep the console bound to loopback, allow only the operator's tailnet
 devices in `console.allow`, and expose it with Tailscale Serve. Do not use Funnel
@@ -251,7 +255,7 @@ and an RTX 4090 showed:
 
 | Check | Result |
 | --- | --- |
-| Account/usage/admission safety, datastore, recovery and health tests | 34 passed |
+| Account/usage/admission safety, datastore, recovery and health tests | 35 passed |
 | Imports inside the production bubblewrap command | All ten requested packages passed |
 | JAX through `gpu-run` | CUDA device 0; jitted 64-by-64 matrix product returned 64 |
 | MCX through `gpu-run` | One 4090 detected; 10,000 photons simulated with finite positive flux |
@@ -266,6 +270,7 @@ and an RTX 4090 showed:
 | GPU access after reboot | Per-user device ACLs restored; sandbox tests passed |
 | Initial live observation | Four fresh researchers active after 20.5 minutes; highest whole-run peak 684 MiB; no OOM or memory-limit events |
 | Natural research tool use | Successful `gpu-run` MCX simulations and `fetch` requests observed in independent runs |
+| SCI publishing | An autonomous researcher's signed package accepted with the machine signing key |
 
 The Linux baseline had no running data service, no shared-store mount and no
 GPU devices in the sandbox. These probes demonstrate the added capabilities

@@ -189,9 +189,25 @@ class UsageAndAdmissionTests(unittest.TestCase):
 
     def test_transient_errors_are_retryable(self):
         for msg in ("Failed to refresh OAuth token: another Claude Code process is refreshing it",
-                    '{"message": "exceeded retry limit, last status: 429 Too Many Requests"}'):
+                    '{"message": "exceeded retry limit, last status: 429 Too Many Requests"}',
+                    '{"message": "Selected model is at capacity. Please try a different model."}'):
             self.assertTrue(scheduler.TRANSIENT.search(msg))
         self.assertFalse(scheduler.TRANSIENT.search("model produced invalid output"))
+
+    def test_model_capacity_retries_the_same_session_and_account(self):
+        now = time.time()
+        with store.connect() as conn:
+            conn.execute("insert into runs(id, account, provider, session_id, state, created_at, updated_at) "
+                         "values ('capacity','codex-b','codex','capacity-session','running',?,?)", (now, now))
+        summary = {"overage": False, "limited": False, "exit_code": 1,
+                   "error": "Selected model is at capacity. Please try a different model."}
+        with patch.object(scheduler.runner, "run_turn", return_value=summary):
+            self.orch._worker("capacity", config.account(self.cfg, "codex-b"), self.cfg, True)
+        with store.connect() as conn:
+            row = conn.execute("select * from runs where id='capacity'").fetchone()
+        self.assertEqual((row["state"], row["account"], row["session_id"]),
+                         ("waiting_resume", "codex-b", "capacity-session"))
+        self.assertGreaterEqual(row["resume_at"], now + scheduler.RETRY_SECONDS)
 
     def test_resumes_are_spaced_per_account(self):
         started = []
