@@ -14,6 +14,7 @@ signed packages to [SCI](https://sci.azaho.org/). In its first ~24 hours it publ
 | [`orchestrator/`](orchestrator/) | `quo-swarm`: scheduler, sandbox, usage caps, console, shared download service. Linux (systemd + bubblewrap) and macOS (Seatbelt + tmux). `orchestrator/README.md` is the original Linux guide. |
 | [`docs/architecture.md`](docs/architecture.md) | How the orchestrator works; which modules are reusable on their own. |
 | [`docs/macos.md`](docs/macos.md) | The macOS port: sandbox profile, pitfalls, fixes. |
+| [`docs/linux-gpu.md`](docs/linux-gpu.md) | Linux GPU swarm in LXC: shared downloads, physics tools, GPU admission, resource limits and validation. |
 | [`docs/data-sharing.md`](docs/data-sharing.md) | How agents share downloads without seeing each other's choices (`fetch URL`). |
 | [`docs/research-setup.md`](docs/research-setup.md) | Prompt, SCI signing, attribution, steering decisions, results. |
 | [`docs/operations.md`](docs/operations.md) | Install, run, monitor, drain, clean up. |

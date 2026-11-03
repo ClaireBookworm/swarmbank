@@ -7,7 +7,8 @@ R="$HOME/.local/share/quo-swarm"
 # sci CLI source: a local SCI checkout if present, otherwise the public repository.
 PLATFORM="${SCI_SOURCE:-$HOME/.local/share/sci-org/platform}"
 [ -d "$PLATFORM" ] || PLATFORM="git+https://github.com/azaho/sci"
-mkdir -p "$R/app" "$R/tools"
+mkdir -p "$R/app" "$R/tools" "$R/state" "$R/data/objects" "$HOME/.local/bin" "$HOME/.config/systemd/user"
+chmod 311 "$R/data/objects"
 rm -rf "$R/app/quo_swarm.new"
 cp -r "$SRC/quo_swarm" "$R/app/quo_swarm.new"
 rm -rf "$R/app/quo_swarm"; mv "$R/app/quo_swarm.new" "$R/app/quo_swarm"
@@ -17,10 +18,20 @@ git -C "$SRC" rev-parse HEAD > "$R/app/COMMIT" 2>/dev/null || true
 if [ ! -x "$R/tools/sci-venv/bin/sci" ]; then
   /usr/bin/python3 -m venv "$R/tools/sci-venv"
   "$R/tools/sci-venv/bin/pip" install -q "$PLATFORM"
-  for f in "$R/tools/sci-venv/bin/"*; do
-    [ -f "$f" ] && head -c 2 "$f" | grep -q '#!' && sed -i "1s|^#!.*/sci-venv/bin/python.*|#!/opt/sci/bin/python|" "$f"
-  done
 fi
+
+# Tools are mounted read-only; the single empty lock inode is shared read-only too.
+install -m 755 "$SRC/tools/fetch" "$R/tools/fetch"
+install -m 755 "$SRC/tools/gpu-run" "$R/tools/gpu-run"
+{
+  cat /etc/profile
+  printf '\n'
+  cat "$SRC/tools/linux-shell-env.sh"
+} > "$R/tools/linux-profile.new"
+chmod 444 "$R/tools/linux-profile.new"
+mv "$R/tools/linux-profile.new" "$R/tools/linux-profile"
+[ -e "$R/state/gpu.lock" ] || : > "$R/state/gpu.lock"
+chmod 444 "$R/state/gpu.lock"
 
 install -m 600 "$SRC/systemd/quo-swarm.service" "$HOME/.config/systemd/user/quo-swarm.service"
 install -m 600 "$SRC/systemd/quo-agents.slice" "$HOME/.config/systemd/user/quo-agents.slice"

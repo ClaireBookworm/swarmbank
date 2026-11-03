@@ -18,6 +18,7 @@ import ipaddress
 import json
 import shutil
 import socket
+import sys
 import threading
 import time
 import urllib.error
@@ -32,8 +33,10 @@ OBJECTS = config.DATA / "objects"
 PARTIAL = config.DATA / "partial"
 INDEX = config.DATA / "index.json"  # {"url:<url>": path, "sha256:<hex>": path}; never shown to agents
 LOG = config.STATE / "data.log"
+SANDBOX_OBJECTS = Path("/opt/quo-data/objects")
 _locks: dict[str, threading.Lock] = {}
 _locks_guard = threading.Lock()
+_last_fetch: dict[str, float] = {}
 
 
 class FetchError(RuntimeError):
@@ -105,9 +108,10 @@ def fetch(url: str, run_id: str = "") -> Path:
     with lock:  # one download per URL; other requests for it wait and share the result
         with _locks_guard:
             known = _index().get("url:" + url)
-        if known and Path(known).is_file():
-            _log({"run": run_id, "url": url, "hit": True})
-            return Path(known)
+            if known and Path(known).is_file():
+                _last_fetch[known] = time.time()
+                _log({"run": run_id, "url": url, "hit": True})
+                return Path(known)
         _check_url(url)
         cfg = config.load()
         reserve = float(cfg["disk_reserve_gib"])
@@ -145,9 +149,12 @@ def fetch(url: str, run_id: str = "") -> Path:
                 target = Path(same)
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
+                if sys.platform != "darwin":
+                    target.parent.chmod(0o311)  # create/traverse by known name, never list
                 tmp.chmod(0o444)
                 tmp.rename(target)
             _remember(**{"url:" + url: str(target), "sha256:" + sha: str(target)})
+            _last_fetch[str(target)] = time.time()
         _log({"run": run_id, "url": url, "hit": False, "bytes": size, "sha256": sha})
         return target
 
@@ -168,13 +175,17 @@ def evict(target_free_gib: float, keep_days: float = 2.0) -> int:
                 last[path] = max(last.get(path, 0), entry.get("t", 0))
     except (OSError, ValueError):
         pass
-    files = [p for p in OBJECTS.glob("*/*") if p.is_file()]
+    # Linux object directories deliberately cannot be listed, even by the service.
+    # The private index is the inventory; it is never mounted into agents.
+    files = [Path(p) for p in set(index.values()) if Path(p).is_relative_to(OBJECTS) and Path(p).is_file()]
     files.sort(key=lambda p: last.get(str(p), p.stat().st_mtime))
     cutoff, freed = time.time() - keep_days * 86400, 0
     for path in files:
         if _free_gib() >= target_free_gib or last.get(str(path), path.stat().st_mtime) > cutoff:
             break
         with _locks_guard:
+            if not path.is_file() or _last_fetch.get(str(path), 0) > cutoff:
+                continue
             freed += path.stat().st_size
             path.unlink()
             try:
@@ -200,7 +211,8 @@ class Handler(BaseHTTPRequestHandler):
             if not url:
                 raise FetchError("usage: fetch URL")
             path = fetch(url, self.headers.get("X-Run-Id", ""))
-            body, code = {"path": str(path), "bytes": path.stat().st_size}, 200
+            visible = path if sys.platform == "darwin" else SANDBOX_OBJECTS / path.relative_to(OBJECTS)
+            body, code = {"path": str(visible), "bytes": path.stat().st_size}, 200
         except FetchError as exc:
             body, code = {"error": str(exc)}, 400
         data = json.dumps(body).encode()
@@ -214,6 +226,12 @@ class Handler(BaseHTTPRequestHandler):
 def serve() -> ThreadingHTTPServer:
     cfg = config.load()["data_service"]
     OBJECTS.mkdir(parents=True, exist_ok=True)
+    if sys.platform != "darwin":
+        OBJECTS.chmod(0o311)
+        for path in set(_index().values()):
+            parent = Path(path).parent
+            if parent.parent == OBJECTS and parent.is_dir():
+                parent.chmod(0o311)
     for stale in PARTIAL.glob("*") if PARTIAL.is_dir() else ():
         stale.unlink(missing_ok=True)
     server = ThreadingHTTPServer((cfg["host"], int(cfg["port"])), Handler)

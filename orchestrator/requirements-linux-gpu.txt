@@ -1,0 +1,16 @@
+# Tested together on x86_64 Linux / CPython 3.12. CUDA 12 wheels work with
+# newer compatible NVIDIA drivers; the driver remains owned by the host.
+numpy==2.2.6
+scipy==1.15.3
+jax[cuda12]==0.4.38
+k-wave-python==0.6.2
+jwave==0.2.1
+pmcx==0.8.1
+mne==1.13.2
+scikit-fem==12.0.2
+blochsimulator==2.9.7
+matplotlib==3.10.9
+pandas==3.1.0
+pyarrow==26.0.0
+h5py==3.16.0
+requests==2.34.2

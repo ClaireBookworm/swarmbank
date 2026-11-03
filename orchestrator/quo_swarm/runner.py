@@ -18,6 +18,7 @@ import uuid
 from pathlib import Path
 
 from . import config, guard, macos, store, usage
+from .datastore import OBJECTS, SANDBOX_OBJECTS
 
 DARWIN = sys.platform == "darwin"
 
@@ -113,13 +114,19 @@ def sandbox_command(account: dict, cfg: dict, run_id: str, session_id: str | Non
     cli = guard.binary(provider)
     key = config.pool_key(pool, provider)
     profile_mount = f"{SANDBOX_HOME}/.claude-profile" if provider == "claude" else f"{SANDBOX_HOME}/.codex"
+    threads = str(int(cfg["resources"].get("threads_per_run", 1)))
     env = guard.clean_env({
         "CLAUDE_CONFIG_DIR" if provider == "claude" else "CODEX_HOME": profile_mount,
         "SCI_HOME": f"{SANDBOX_HOME}/.sci",
-        "PATH": f"/opt/sci/bin:/opt/cli:{CODEX_VENDOR}/bin:{CODEX_VENDOR}/codex-path:/usr/local/bin:/usr/bin:/bin",
+        "PATH": f"/opt/sci/bin:/opt/tools:/opt/cli:{CODEX_VENDOR}/bin:{CODEX_VENDOR}/codex-path:/usr/local/bin:/usr/bin:/bin",
         "TMPDIR": "/tmp",
-        "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
-        "NUMEXPR_NUM_THREADS": "1", "VECLIB_MAXIMUM_THREADS": "1",
+        "CLAUDE_CODE_TMPDIR": "/tmp/claude",
+        "OMP_NUM_THREADS": threads, "OPENBLAS_NUM_THREADS": threads, "MKL_NUM_THREADS": threads,
+        "NUMEXPR_NUM_THREADS": threads, "VECLIB_MAXIMUM_THREADS": threads,
+        "JAX_PLATFORMS": "cpu",  # GPU contexts belong to jobs admitted through gpu-run
+        "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+        "MPLBACKEND": "Agg",
+        "QUO_DATA_PORT": str(cfg["data_service"]["port"]),
         "QUO_RUN_ID": run_id,
         "QUO_AGENT": f"{'Claude Code' if provider == 'claude' else 'Codex'} agent "
                      f"({pool['models'][provider].get('model') or 'default model'})",
@@ -129,9 +136,11 @@ def sandbox_command(account: dict, cfg: dict, run_id: str, session_id: str | Non
            f"--unit=quo-run-{run_id}", "--slice=quo-agents.slice",
            f"-pCPUQuota={int(float(res['cpu_per_run']) * 100)}%",
            f"-pMemoryHigh={res['memory_high_per_run']}", f"-pMemoryMax={res['memory_max_per_run']}",
+           "-pMemorySwapMax=0",
            "--", "bwrap", "--die-with-parent", "--new-session",
            "--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--unshare-cgroup-try",
            "--share-net", "--clearenv",
+           "--cap-drop", "ALL",
            "--ro-bind", "/usr", "/usr", "--ro-bind", "/etc", "/etc",
            "--symlink", "usr/bin", "/bin", "--symlink", "usr/sbin", "/sbin",
            "--symlink", "usr/lib", "/lib", "--symlink", "usr/lib64", "/lib64",
@@ -142,7 +151,36 @@ def sandbox_command(account: dict, cfg: dict, run_id: str, session_id: str | Non
            "--bind", str(run_dir / "work"), "/work",
            "--bind", str(config.account_home(account["id"])), profile_mount,
            "--ro-bind", str(key), f"{SANDBOX_HOME}/.sci/key.pem",
-           "--ro-bind", str(SCI_VENV), "/opt/sci"]
+           "--ro-bind", str(SCI_VENV), "/opt/sci",
+           "--ro-bind", str(SCI_VENV), str(SCI_VENV),
+           "--ro-bind", str(config.ROOT / "tools"), "/opt/tools",
+           "--ro-bind", str(config.ROOT / "tools/linux-profile"), "/etc/profile",
+           "--ro-bind", str(OBJECTS), str(SANDBOX_OBJECTS),
+           "--chmod", "0111", str(SANDBOX_OBJECTS.parent)]
+    # uv-managed Python interpreters live outside their venv. Mount only that runtime,
+    # preserving its absolute path; no account, run or host home is exposed.
+    python = (SCI_VENV / "bin/python").resolve()
+    if not python.is_relative_to(Path("/usr")):
+        runtime = python.parent.parent
+        cmd += ["--ro-bind", str(runtime), str(runtime)]
+        # uv uses a stable minor-version symlink in both bin/python and pyvenv.cfg.
+        # Preserve that alias too, without mounting any adjacent host directories.
+        for line in (SCI_VENV / "pyvenv.cfg").read_text().splitlines():
+            if line.startswith("home = "):
+                alias = Path(line.partition("=")[2].strip()).parent
+                if alias != runtime and alias.resolve() == runtime:
+                    cmd += ["--ro-bind", str(runtime), str(alias)]
+    if cfg.get("gpu", {}).get("enabled"):
+        # Driver libraries under /usr are already read-only above. Devices must use
+        # dev-bind (ro-bind would not permit their ioctls). Never expose all of /dev.
+        devices = sorted(p for p in Path("/dev").glob("nvidia*") if p.is_char_device() and os.access(p, os.R_OK | os.W_OK))
+        if not devices:
+            raise RuntimeError("GPU enabled but no accessible NVIDIA device nodes")
+        cmd += ["--ro-bind", "/sys", "/sys",
+                "--ro-bind-try", "/proc/driver/nvidia", "/proc/driver/nvidia"]
+        for device in devices:
+            cmd += ["--dev-bind", str(device), str(device)]
+        cmd += ["--ro-bind", str(config.ROOT / "state/gpu.lock"), "/run/quo-gpu.lock"]
     if provider == "claude":
         cmd += ["--ro-bind", str(cli), "/opt/cli/claude"]
     else:

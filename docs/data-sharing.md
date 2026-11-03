@@ -60,4 +60,8 @@ Result on our machine: 28 files (5.2 GB) in the store, 17 with URLs; runs 82 →
 - **Hardlinks** for running runs' duplicates: an agent could `chmod`/write and change the shared inode. Clones are safe.
 
 Open problems (good PR targets): archives (`.tar.gz`) are extracted into each run's folder, so extracted data is
-still duplicated; no eviction policy; latency reveals cache hits.
+still duplicated; latency reveals cache hits.
+
+Linux uses the same service and client, with read-only, non-listable object mounts under
+`/opt/quo-data/objects`. Both platforms evict old objects under disk pressure, protecting objects fetched
+in the last two days. See [`linux-gpu.md`](linux-gpu.md) for permissions, sizing and validation.

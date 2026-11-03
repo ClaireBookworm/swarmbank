@@ -41,6 +41,7 @@ code{font:12px ui-monospace,SFMono-Regular,monospace}
     <span class="title">Swarm console</span>
     <span class="spacer"></span>
     <span id="proxy" class="pill">checking proxy…</span>
+    <span id="health" class="pill">checking monitor…</span>
     <span id="launch" class="pill">…</span>
   </header>
   <p id="problem" class="problem" hidden></p>
@@ -55,7 +56,7 @@ code{font:12px ui-monospace,SFMono-Regular,monospace}
     <tbody id="runs"></tbody></table>
   <h2>Events</h2>
   <table><thead><tr><th>Time</th><th>Level</th><th>Account</th><th>Message</th></tr></thead><tbody id="events"></tbody></table>
-  <p class="muted small">Read-only. Data comes only from the official Claude Code and Codex CLIs' own output on this laptop. No proxy is used. Refreshes every 10 s.</p>
+  <p class="muted small">Read-only. Usage comes from the official CLIs. Worker checks run every 5 s; service recovery is shown in Monitor. Refreshes every 10 s.</p>
 </main>
 </body>
 </html>

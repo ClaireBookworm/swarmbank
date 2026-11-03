@@ -18,7 +18,7 @@ import threading
 import time
 import traceback
 
-from . import config, guard, macos, runner, store
+from . import config, guard, health, macos, runner, store
 
 IDENTITY_INTERVAL = 300
 TICK = 5
@@ -28,7 +28,7 @@ COOLDOWN_MAX = 1800
 THROTTLED = re.compile(r"\b429\b|Too Many Requests", re.IGNORECASE)
 # Temporary provider or login-refresh conditions: retry the same session later.
 TRANSIENT = re.compile(r"refresh(ing)? (the )?OAuth token|another Claude Code process|429|Too Many Requests|"
-                       r"overloaded|\b529\b|\b50[234]\b|ECONNRESET|ETIMEDOUT|timed out|stream disconnected",
+                       r"overloaded|at capacity|\b529\b|\b50[234]\b|ECONNRESET|ETIMEDOUT|timed out|stream disconnected",
                        re.IGNORECASE)
 
 
@@ -107,9 +107,7 @@ class Orchestrator:
                        capture_output=True)
 
     def interrupt_all(self) -> None:
-        """macOS has no systemd KillMode: on shutdown, interrupt every live run (sessions kept)."""
-        if not runner.DARWIN:
-            return
+        """Scopes live outside the service cgroup: interrupt them explicitly on shutdown."""
         with store.connect() as conn:
             rows = conn.execute("select id, pid from runs where pid is not null "
                                 "and state in ('starting','running','interrupting')").fetchall()
@@ -117,9 +115,11 @@ class Orchestrator:
             for r in rows:
                 conn.execute("update runs set state='interrupting', reason='orchestrator stopped', updated_at=? "
                              "where id=?", (time.time(), r["id"]))
-            pids = [r["pid"] for r in rows]
-        for pid in pids:
-            macos.interrupt(pid)
+        for row in rows:
+            if runner.DARWIN:
+                macos.interrupt(row["pid"])
+            else:
+                self.interrupt(row["id"])
 
     def _evict(self, target_gib: float) -> None:
         from .datastore import evict
@@ -228,6 +228,15 @@ class Orchestrator:
                 for r in conn.execute("select pid from runs where pid is not null "
                                       "and state in ('starting','running','interrupting')").fetchall():
                     macos.interrupt(r["pid"], macos.signal.SIGTERM)
+            else:
+                # A scope is not a descendant of quo-swarm.service. Killing the serve
+                # process leaves it alive; never resume the same session beside it.
+                for r in conn.execute("select id from runs where state in "
+                                      "('starting','running','interrupting')").fetchall():
+                    unit = f"quo-run-{r['id']}.scope"
+                    subprocess.run(["systemctl", "--user", "kill", "--signal=SIGKILL", unit],
+                                   capture_output=True, timeout=10)
+                    subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True, timeout=10)
             conn.execute("update runs set state='waiting_resume', pid=null, updated_at=? "
                          "where state in ('starting','running','interrupting')", (time.time(),))
 
@@ -272,7 +281,7 @@ class Orchestrator:
             now = time.time()
             reserve = float(cfg.get("disk_reserve_gib", 50))
             low_disk = free_gib < reserve
-            if (runner.DARWIN and free_gib < reserve + 10 and now - getattr(self, "_evicted", 0) > 600
+            if (free_gib < reserve + 10 and now - getattr(self, "_evicted", 0) > 600
                     and not getattr(self, "_evicting", False)):
                 self._evicted, self._evicting = now, True  # free space before the reserve stops everything
                 threading.Thread(target=self._evict, args=(reserve + 20,), daemon=True).start()
@@ -353,6 +362,7 @@ class Orchestrator:
         while not stop.is_set():
             try:
                 self.tick()
+                health.heartbeat()
             except Exception:  # noqa: BLE001
                 with store.connect() as conn:
                     store.event(conn, "error", traceback.format_exc()[-800:])
