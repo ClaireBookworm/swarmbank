@@ -1,0 +1,31 @@
+[Unit]
+Description=Read-only Tapo power strip logger
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=tapo-logger
+Group=tapo-logger
+EnvironmentFile=/etc/tapo-logger/config.env
+ExecStart=/opt/tapo-logger/venv/bin/python /opt/tapo-logger/tapo_logger.py
+# Readable only by root on disk; systemd hands a private copy to the service.
+LoadCredential=tapo:/etc/tapo-logger/credentials
+StateDirectory=tapo-logger
+StateDirectoryMode=0755
+UMask=0022
+Restart=always
+RestartSec=30
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=multi-user.target
