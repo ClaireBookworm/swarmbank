@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Show the latest strip reading, or the last N rows for one outlet.
+# Usage: tapo-power            # all outlets + total
+#        tapo-power OUTLET [N]  # last N readings (default 60) for one outlet
+set -euo pipefail
+D=${TAPO_LOG_DIR:-/var/lib/tapo-logger}
+if [[ ${1:-} == -h || ${1:-} == --help ]]; then sed -n '2,4p' "$0"; exit 0; fi
+if [[ $# -ge 1 ]]; then
+  awk -F, -v o="$1" 'NR==1 || $2==o' "$D/power.csv" |
+    { IFS= read -r header; echo "$header"; tail -n "${2:-60}"; } | column -t -s,
+else
+  python3 - "$D/latest.json" <<'PY'
+import json, sys
+rows = json.load(open(sys.argv[1]))
+print(rows[0]["time"] if rows else "no readings yet")
+total = 0.0
+for r in rows:
+    watts = float(r["watts"] or 0)
+    total += watts
+    state = "on " if r["on"] else "OFF"
+    print(f'{r["outlet"]:<12} {state} {watts:>7.1f} W   {r["kwh_today"]} kWh today')
+print(f'{"total":<16} {total:>7.1f} W')
+PY
+fi

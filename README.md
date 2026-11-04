@@ -11,6 +11,7 @@ signed packages to [SCI](https://sci.azaho.org/). In its first ~24 hours it publ
 | Path | What |
 | --- | --- |
 | [`machine-onboarding/`](machine-onboarding/) | Fresh Ubuntu host setup: SSH, Tailscale, GitHub, development tools, T3, and installed but unauthenticated Codex/Claude CLIs. Start here for a new laptop. |
+| [`power-monitoring/`](power-monitoring/) | Per-host power logging from a Tapo energy-monitoring strip: read-only hardened logger, root-only credentials, strip settings that avoid cutting power to the swarm, and laptop behavior during power blips. |
 | [`orchestrator/`](orchestrator/) | `quo-swarm`: scheduler, sandbox, usage caps, console, shared download service. Linux (systemd + bubblewrap) and macOS (Seatbelt + tmux). `orchestrator/README.md` is the original Linux guide. |
 | [`docs/architecture.md`](docs/architecture.md) | How the orchestrator works; which modules are reusable on their own. |
 | [`docs/macos.md`](docs/macos.md) | The macOS port: sandbox profile, pitfalls, fixes. |
