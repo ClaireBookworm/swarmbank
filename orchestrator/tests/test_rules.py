@@ -148,15 +148,15 @@ class UsageAndAdmissionTests(unittest.TestCase):
                 "status": "allowed_warning", "rateLimitType": "seven_day", "resetsAt": time.time() + 9999}})
         self.assertFalse(self.avail("claude-b")[0])
 
-    def test_codex_default_cap_allows_below_100_and_stops_at_100(self):
-        for window in ("primary", "secondary"):
+    def test_codex_default_caps_100_short_window_85_weekly(self):
+        for window, cap in (("primary", 100), ("secondary", 85)):
             with self.subTest(window=window):
                 with store.connect() as conn:
                     conn.execute("delete from usage")
-                    store.record_usage(conn, "codex-b", window, 99.9, time.time() + 999, "observed")
+                    store.record_usage(conn, "codex-b", window, cap - 0.1, time.time() + 999, "observed")
                 self.assertTrue(self.avail("codex-b")[0])
                 with store.connect() as conn:
-                    store.record_usage(conn, "codex-b", window, 100, time.time() + 999, "observed")
+                    store.record_usage(conn, "codex-b", window, cap, time.time() + 999, "observed")
                 self.assertFalse(self.avail("codex-b")[0])
 
     def test_provider_rejection_stops_below_default_cap(self):

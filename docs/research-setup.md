@@ -1,4 +1,4 @@
-# Research setup (SCI connectome swarm)
+# Research setup (example: connectome swarm)
 
 ## Objective and prompt
 
@@ -19,15 +19,17 @@ Edit the `<…>` placeholders per machine.
 ## SCI signing
 
 - Install the `sci` CLI into the tools venv (`install-macos.sh` does this). `sci keygen --key PATH`, `chmod 600`.
-- Send **only the printed public key** to the SCI administrator to enable it. Never copy `.pem` files; each
-  machine gets its own key. Until enabled, `sci push` fails with `key_not_enabled`.
-- **Check enablement without publishing:** `sci push` is two-step. The first request (signed metadata) returns
-  HTTP 202 with upload URLs if the key is enabled. Send only that request for a throwaway signed folder and never
-  call the completion step.
+- Never commit, publish or paste `.pem` files. A machine may reuse the operator's existing key (copied over a
+  private channel into an owner-only file) or get its own key.
+- sciscape admits a publication when its key has a current signed claim hosted on a domain, GitHub account or
+  Hugging Face account (`sci claim --help`; sciscape AGENTS.md section 4). No administrator enables keys.
+- Publishing is two steps after signing: `sci publish` to a public archive, then `sci submit` to sciscape. Check
+  the submit result for catalog admission, not only `locations_recorded`.
 - The pool config maps provider → key path; the runner writes it into each run's sci config and the sandbox allows
   reading that one file.
-- Catalog: SCI exposes a PostgREST catalog (`Accept-Profile: catalog_v1`, `apikey` header with the publishable key
-  the SCI web site uses). Filter your own publications with `author_public_key=eq.<key>`.
+- Catalog: sciscape exposes read-only PostgREST views at `https://sciscape.io/api/catalog/` (no key needed; see
+  https://sciscape.io/api/docs). Filter your own publications by account with
+  `admission_accounts=cs.[{"type":"domain","id":"<domain>"}]`.
 
 ## Attribution
 
