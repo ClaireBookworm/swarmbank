@@ -40,7 +40,7 @@ DEFAULT = {
         "codex": {"model": None, "effort": None},
     },
     # Top-level pool (disabled by default). Most swarms use entries under "pools" instead.
-    "sci": {"server": "https://sci.azaho.org/", "key": ""},
+    "sci": {"server": "https://sciscape.io", "key": ""},
     "instructions_file": None,
     # Additional pools (each with its own prompt, server, keys, and concurrency); see pools().
     "pools": {},

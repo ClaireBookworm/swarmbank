@@ -38,7 +38,7 @@ def run_summary(run_id: str, messages: int = 3) -> dict:
             elif item.get("type") == "command_execution":
                 tools += 1
                 commands.append(str(item.get("command", "")))
-        sci += [c[:160] for c in commands if "sci push" in c or "sci sign" in c]
+        sci += [c[:160] for c in commands if "sci push" in c or "sci sign" in c or "sci publish" in c or "sci submit" in c]
     return {"tools": tools, "sci": sci[-3:], "messages": [" ".join(t.split())[:600] for t in texts[-messages:]]}
 
 

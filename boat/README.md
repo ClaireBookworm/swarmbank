@@ -35,8 +35,19 @@ to run a swarm, for publishing to sciscape (https://sciscape.io/AGENTS.md).
   `boat limits` there returns `canStart: false`). To create and stop worker
   sandboxes, the operator VM needs an account login: run `boat login` on it once.
 - **Secrets:** use boat environment variables or secret files
-  (https://docs.boat.dev/environments/secrets.md), never this repository. With
-  `GITHUB_TOKEN` set, `gh` is logged in without `gh auth login` (*verified*).
+  (https://docs.boat.dev/environments/secrets.md), never this repository.
+- **Two GitHub tokens.** If GitHub is connected in boat and the environment
+  passes GitHub access (`boat env set <env> --github true`, the default for
+  your own sandboxes), boat itself sets `GITHUB_TOKEN` and logs in `gh`
+  (https://docs.boat.dev/environments/access.md). That token comes from boat's
+  GitHub app (it starts with `ghu_`) and only reaches repositories where that
+  app is installed and allowed (*verified*: it could read but not push to a
+  repository outside that set). For other repositories, add your own
+  fine-grained token as a boat secret under any other name (for example
+  `MY_GITHUB_PAT`) and use it per command: `GH_TOKEN="$MY_GITHUB_PAT" sci publish ...`.
+  `gh` uses `GH_TOKEN` before `GITHUB_TOKEN` (*verified*); `sci publish` accepts
+  either, so unset `GITHUB_TOKEN` for that command if in doubt. The token needs
+  Contents read/write on the archive repository (plus Pull requests to open PRs).
 
 ## Operator VM setup
 
@@ -103,11 +114,10 @@ Token-heavy work needs fewer agents at once than light work; size the pool from
 measured usage, not machine size. Each account sets its own usage cap; the
 swarmbank default is 85% of each weekly window.
 
-## Publishing to sciscape instead of sci.azaho.org
+## Publishing to sciscape
 
-The rest of swarmbank publishes with `sci push` to `https://sci.azaho.org/`.
-sciscape indexes externally hosted bundles, so the flow is different
-(AGENTS.md sections 4-5):
+sciscape indexes bundles hosted elsewhere, so publishing has three steps after
+review (AGENTS.md sections 4-5):
 
 1. `sci sign result --output <dir>` and `sci verify <dir>/<digest>.zip`
 2. `sci publish <dir> --to https://github.com/<OWNER>/<REPO>` (public archive)

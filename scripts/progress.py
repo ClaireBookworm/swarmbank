@@ -13,12 +13,12 @@ for run in db.execute("select * from runs where state!='failed' order by account
                 if c.get("type") == "text": texts.append(c["text"])
                 if c.get("type") == "tool_use":
                     tools += 1; cmd = str((c.get("input") or {}).get("command", ""))
-                    if "sci sign" in cmd or "sci push" in cmd: sci.append(cmd[:80])
+                    if "sci sign" in cmd or "sci push" in cmd or "sci submit" in cmd: sci.append(cmd[:80])
         elif o.get("type") == "item.completed":  # Codex
             it = o.get("item", {})
             if it.get("type") == "agent_message": texts.append(it.get("text", ""))
             if it.get("type") == "command_execution":
                 tools += 1; cmd = str(it.get("command", ""))
-                if "sci sign" in cmd or "sci push" in cmd: sci.append(cmd[:80])
+                if "sci sign" in cmd or "sci push" in cmd or "sci submit" in cmd: sci.append(cmd[:80])
     print(f"== {run['id'][:8]} {run['account']} {run['state']} tools={tools} sci={len(sci)}")
     for t in texts[-int(sys.argv[1] if len(sys.argv) > 1 else 2):]: print("   >", " ".join(t.split())[:400])

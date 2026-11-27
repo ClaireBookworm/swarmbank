@@ -1,15 +1,16 @@
 # Running a public SCI research swarm
 
 This guide explains how the orchestrator works and how to set up the same kind
-of swarm on another Linux machine with your own subscriptions and accounts.
-The swarm publishes its results publicly on SCI at `https://sci.azaho.org/`.
+of swarm on any Linux machine with your own subscriptions and accounts.
+The swarm publishes signed results to [sciscape](https://sciscape.io) under the rules in
+[sciscape's AGENTS.md](https://sciscape.io/AGENTS.md).
 The orchestrator's command is called `quo-swarm`; the name is historical, and
 nothing in this guide needs anything else from that project.
 
 A **swarm** is a pool of AI research agents that run continuously on one
 machine. Each agent is an official coding CLI (Claude Code or Codex) running in
 a sandbox. It investigates a research objective and publishes signed results
-to an SCI server (for example, `https://sci.azaho.org/`). When an agent finishes,
+to an SCI index (for example, `https://sciscape.io`). When an agent finishes,
 the orchestrator starts another, within the usage limits of your accounts.
 
 ---
@@ -65,7 +66,7 @@ problems, including a banned account.
    systemd-run --user --scope  (quo-agents.slice: total CPU/RAM cap)
      └─ bwrap sandbox (private /work, /tmp, home; host home hidden)
           └─ official CLI binary  ──direct HTTPS──►  Anthropic / OpenAI
-               └─ sci sign / sci push ──────────────►  SCI server
+               └─ sci sign ──► operator: sci publish / sci submit ──►  archive + sciscape
 ```
 
 ### Code layout (`swarm/quo_swarm/`)
@@ -191,6 +192,12 @@ Budget about 0.5–1 GB RAM per idle agent and more while it computes.
 
 ## 4. Setup
 
+The operator publishes reviewed bundles to a public archive and sciscape (AGENTS.md section 5):
+`sci publish <dir> --to https://github.com/<OWNER>/<REPO>`, then
+`sci submit <dir> --to https://sciscape.io --archive https://github.com/<OWNER>/<REPO> --account <type> <id>`.
+quo-swarm does not run these steps itself yet.
+
+
 ### 4.1 Get the code and install
 
 You receive the orchestrator as an archive (`swarm-orchestrator.tar.gz`):
@@ -209,7 +216,7 @@ CLI environment for the sandbox (from the public `azaho/sci` repository, or
 
 ### 4.2 Edit `~/.local/share/quo-swarm/config.json`
 
-The defaults come from Andrii's machine. **Replace them with your own values:**
+The installed defaults are examples. **Replace them with your own values:**
 
 ```json
 {
@@ -235,7 +242,7 @@ The defaults come from Andrii's machine. **Replace them with your own values:**
       "provider_priority": [],
       "prompt": "<full researcher prompt, see 4.6>",
       "sci": {
-        "server": "https://sci.azaho.org/",
+        "server": "https://sciscape.io",
         "keys": {"claude": "~/sci-keys/claude/key.pem", "codex": "~/sci-keys/codex/key.pem"}
       }
     }
@@ -296,24 +303,28 @@ mkdir -p ~/sci-keys/claude ~/sci-keys/codex
 chmod 600 ~/sci-keys/*/key.pem
 ```
 
-Run these from a directory that is not an SCI source checkout. (Or install the CLI normally with `pip install "git+https://github.com/azaho/sci"`
-and run `sci keygen --key ...`.) Send **only the printed public keys** (43-character
-base64url values) to the SCI server's administrator, who enables them with
-`select * from sci.enable_key('<public key>');`. Never send the private `.pem` files.
-Pushes fail with `key_not_enabled` until this is done.
+Run these from a directory that is not an SCI source checkout. (Or install the CLI normally with `pip install sci-protocol`
+and run `sci keygen --key ...`.) If you already publish with a key, reuse it instead of creating
+a new one (sciscape AGENTS.md section 4). Never commit, publish or paste the private `.pem` files.
+
+sciscape admits a publication only if its key is linked to an account you control. Create a
+signed claim for each key with `sci claim domain|github|huggingface <account> --name "<publisher name>" --key <key.pem> --output claim`
+and host the two files it prints (for a domain: `https://<domain>/.well-known/sci/keys/`; for
+GitHub: `sci/keys/` on `main` of `<login>/<login>` or `<login>/.github`). Claims expire after
+90 days by default; renew them before then.
 
 ### 4.6 Write the pool prompt
 
-Start from SCI's `PROMPT.md` (in the `azaho/sci` repository). Fill in:
+Start from `config/prompt.txt` (based on the researcher prompt in sciscape's AGENTS.md). Fill in:
 
 - `Research objective:` your goal, in one or two sentences.
 - `Available resources:` what the agents really have, for example: *Shell, Python,
-  web search and HTTP access; SCI at https://sci.azaho.org/ (already configured);
+  web search and HTTP access; the SCI index https://sciscape.io (already configured);
   private working directory /work; a shared machine (N threads and M GB RAM shared
   by up to K researchers); keep /work below 20 GB and prefer streaming or subsets
   of large datasets; 50 MB per publication; no fixed time limit. Your signing key
-  is configured at /home/agent/.sci/key.pem. Retry a failed push using the same
-  signed folder; do not sign again just to retry.*
+  is configured at /home/agent/.sci/key.pem. Sign the final draft into ./campaign;
+  the operator publishes and submits it after review.*
 
 Put the full text in the pool's `"prompt"`.
 

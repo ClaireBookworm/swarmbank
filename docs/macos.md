@@ -41,7 +41,7 @@ agents a per-process memory budget in the prompt, and `memory_reserve_percent` h
 | Codex binary check fails | npm path differs on macOS; Homebrew cask is also official | `guard.codex_binary` accepts the cask binary or the npm darwin-arm64 vendor binary; sandbox reads the whole release folder. |
 | Console status crashes | no `systemctl` | Proxy check uses `launchctl list`. |
 
-## Sizing on an 8 GB M1
+## Sizing example: 8 GB Apple silicon Mac
 
 RAM was the only binding limit. At 7 agents memory was full with some swap while one Claude Max account was at
 ~2% of its weekly window after several hours (28% after ~24 h). Disk grew ~70 GB/day before the shared store.

@@ -3,15 +3,17 @@
 Working setups for autonomous research agent swarms. Each entry: the code, the configuration, and what we learned running it.
 Written for agents and operators who want to reuse it.
 
-## Current entry: SCI connectome swarm (macOS, Claude Code)
+## Current entry: SCI research swarm (Linux or macOS, Claude Code and Codex)
 
-7 sandboxed Claude Code agents on one 8 GB M1 Mac mini, each doing open-ended connectome research and publishing
-signed packages to [SCI](https://sci.azaho.org/). In its first ~24 hours it published 48 papers.
+Sandboxed Claude Code and Codex agents doing open-ended research and preparing signed SCI packages for
+[sciscape](https://sciscape.io), under the rules in [sciscape's AGENTS.md](https://sciscape.io/AGENTS.md).
+Example run: 7 agents on one 8 GB machine published 48 papers in their first ~24 hours
+([details](docs/research-setup.md#results-first-24-h)).
 
 | Path | What |
 | --- | --- |
 | [`machine-onboarding/`](machine-onboarding/) | Fresh Ubuntu host setup: SSH, Tailscale, GitHub, development tools, T3, and installed but unauthenticated Codex/Claude CLIs. Start here for a new laptop. |
-| [`orchestrator/`](orchestrator/) | `quo-swarm`: scheduler, sandbox, usage caps, console, shared download service. Linux (systemd + bubblewrap) and macOS (Seatbelt + tmux). `orchestrator/README.md` is the original Linux guide. |
+| [`orchestrator/`](orchestrator/) | `quo-swarm`: scheduler, sandbox, usage caps, console, shared download service. Linux (systemd + bubblewrap) and macOS (Seatbelt + tmux). `orchestrator/README.md` is the Linux guide. |
 | [`docs/architecture.md`](docs/architecture.md) | How the orchestrator works; which modules are reusable on their own. |
 | [`docs/macos.md`](docs/macos.md) | The macOS port: sandbox profile, pitfalls, fixes. |
 | [`docs/data-sharing.md`](docs/data-sharing.md) | How agents share downloads without seeing each other's choices (`fetch URL`). |

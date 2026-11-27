@@ -37,7 +37,8 @@ def new_run(conn, account: dict, cfg: dict, pool: dict | None = None) -> str:
     (run_dir / "prompt.txt").write_text(config.pool_prompt(pool), "utf-8")
     key_path = str(config.pool_key(pool, account["provider"]).resolve()) if DARWIN else f"{SANDBOX_HOME}/.sci/key.pem"
     (run_dir / "home/.sci/config.json").write_text(json.dumps(
-        {"server": pool["sci"]["server"], "key": key_path}, indent=2) + "\n", "utf-8")
+        # sci-protocol >= 0.3 reads "index"; "server" is kept for older CLIs.
+        {"index": pool["sci"]["server"], "server": pool["sci"]["server"], "key": key_path}, indent=2) + "\n", "utf-8")
     model = pool["models"][account["provider"]]
     (run_dir / "meta.json").write_text(json.dumps({
         "run": run_id, "pool": pool["name"], "sci_server": pool["sci"]["server"],

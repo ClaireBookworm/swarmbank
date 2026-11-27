@@ -37,7 +37,7 @@
         "claude"
       ],
       "sci": {
-        "server": "https://sci.azaho.org/",
+        "server": "https://sciscape.io",
         "keys": {
           "claude": "~/.sci/key.pem"
         }
