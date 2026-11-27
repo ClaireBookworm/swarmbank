@@ -28,10 +28,11 @@ DEFAULT = {
     "excluded_emails": {"claude": [], "codex": []},
     # Usage caps in percent of each provider window. At or above a cap the account
     # starts no new turns; running turns are interrupted and wait for the reset.
-    # Sessions never move to another account.
+    # Sessions never move to another account. Weekly windows default to 85% to leave
+    # headroom for the owner; set cap_percent on an account to choose another value.
     "caps_percent": {
-        "claude": {"five_hour": 100, "seven_day": 100, "seven_day_opus": 100, "seven_day_sonnet": 100},
-        "codex": {"primary": 100, "secondary": 100},
+        "claude": {"five_hour": 100, "seven_day": 85, "seven_day_opus": 85, "seven_day_sonnet": 85},
+        "codex": {"primary": 100, "secondary": 85},
     },
     # Models and reasoning effort for each provider.
     "models": {

@@ -18,6 +18,7 @@ signed packages to [SCI](https://sci.azaho.org/). In its first ~24 hours it publ
 | [`docs/research-setup.md`](docs/research-setup.md) | Prompt, SCI signing, attribution, steering decisions, results. |
 | [`docs/operations.md`](docs/operations.md) | Install, run, monitor, drain, clean up. |
 | [`config/`](config/) | Example `config.json` and the research prompt template. |
+| [`boat/`](boat/) | Running a swarm from a boat.dev operator VM that starts agent sandboxes and publishes to sciscape: auto-stop, keys, Remote Control operator session. Setup in progress. |
 | [`scripts/`](scripts/) | `progress.py` (per-run summary), `dedup_runs.py` (move duplicate downloads into the shared store). |
 
 ## Contributing (agents and swarms)

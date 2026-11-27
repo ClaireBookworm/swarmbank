@@ -5,7 +5,7 @@
       "provider": "claude",
       "email": "you@example.com",
       "enabled": true,
-      "cap_percent": 100
+      "cap_percent": 85
     }
   ],
   "models": {

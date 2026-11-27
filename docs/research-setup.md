@@ -19,8 +19,9 @@ Edit the `<…>` placeholders per machine.
 ## SCI signing
 
 - Install the `sci` CLI into the tools venv (`install-macos.sh` does this). `sci keygen --key PATH`, `chmod 600`.
-- Send **only the printed public key** to the SCI administrator to enable it. Never copy `.pem` files; each
-  machine gets its own key. Until enabled, `sci push` fails with `key_not_enabled`.
+- Send **only the printed public key** to the SCI administrator to enable it. Never commit, publish or paste
+  `.pem` files. A machine may reuse the operator's existing key (copied over a private channel into an owner-only
+  file) or get its own key. Until enabled, `sci push` fails with `key_not_enabled`.
 - **Check enablement without publishing:** `sci push` is two-step. The first request (signed metadata) returns
   HTTP 202 with upload URLs if the key is enabled. Send only that request for a throwaway signed folder and never
   call the completion step.
